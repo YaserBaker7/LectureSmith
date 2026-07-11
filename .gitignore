@@ -1,0 +1,26 @@
+# .gitignore for C# .NET Projects
+
+# Build folders
+[Bb]in/
+[Oo]bj/
+
+# IDE configurations
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# System & OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# App Settings / Local secrets (stored outside project in %APPDATA%, but added here for safety)
+settings.json
+*.local
+
+# Ignore the compiled executable so it is not committed (publish as release asset instead)
+LectureSmith.exe
