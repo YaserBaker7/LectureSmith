@@ -213,7 +213,10 @@
               <ComboBox ItemsSource="{Binding Courses}"
                         SelectedItem="{Binding SelectedCourse}"
                         IsEditable="True"
-                        Text="{Binding SelectedCourse}"/>
+                        Text="{Binding SelectedCourse}"
+                        PlaceholderText="e.g., Software Engineering or Physics"/>
+              <TextBlock Text="Type your course name. It will be saved to this dropdown for future use."
+                         FontSize="10" Foreground="#666" Margin="2,2,0,4" TextWrapping="Wrap"/>
 
               <!-- Mode -->
               <TextBlock Text="Mode:" FontSize="12" Foreground="#999"/>

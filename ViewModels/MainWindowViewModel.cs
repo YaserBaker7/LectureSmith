@@ -106,13 +106,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 Courses.Add(course);
             }
         }
-        else
-        {
-            // Pre-populate with some default suggestions on first load
-            Courses.Add("Fundamentals of Software Engineering");
-            Courses.Add("Advanced OOP");
-            Courses.Add("Data Management");
-        }
 
         SelectedCourse = Courses.FirstOrDefault() ?? string.Empty;
 
