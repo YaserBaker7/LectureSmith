@@ -8,7 +8,7 @@
 
 **LectureSmith** is a high-performance, modern desktop application designed for students and educators. It automatically generates comprehensive study notes from lecture slides (PDFs) by integrating with **Google AI Studio (Gemini API)**. 
 
-Students can upload their slides, optionally attach relevant textbook chapters to enrich the notes, select target courses, choose output formats (Obsidian, HTML, PDF), and even generate TTS audio narrations to listen to their study material on the go.
+Students can upload their slides, optionally attach relevant textbook chapters to enrich the notes, select target courses, and choose output formats (Obsidian, HTML, PDF).
 
 ---
 
@@ -19,7 +19,6 @@ Students can upload their slides, optionally attach relevant textbook chapters t
 * **Modern Desktop Interface**: Polished, dark-themed UI matching premium applications. Features smooth drag-and-drop file ingestion, dynamic validation status colors, and responsive progress tracking.
 * **Advanced Gemini AI Integration**: Supports multiple model endpoints (Gemini 3.5 Flash, Gemini 3.5 Pro) with toggleable AI thinking/reasoning modes for complex subjects.
 * **Clean Exporters**: Output beautiful Obsidian-compatible Markdown, self-contained HTML (with embedded base64 images), or clean, printable PDFs.
-* **Audio Narration (TTS)**: Generate clear WAV speech narrations of the study notes. The application automatically handles text-chunking and API rate limits during speech generation.
 * **Secure API Key Management**: Never hardcoded. Keys are saved securely in the local user's AppData directory (`%APPDATA%/LectureSmith/settings.json`) or loaded automatically from environment variables (`GEMINI_API_KEY` or `GOOGLE_API_KEY`).
 
 ---
@@ -60,9 +59,6 @@ graph TD
     I -->|Export Markdown| J[Obsidian .md]
     I -->|Embed Base64 Images| K[Self-Contained HTML]
     I -->|QuestPDF Flow| L[Printable PDF]
-    
-    F -->|TTS Generation| M[Gemini TTS Endpoint]
-    M -->|WAV PCM Stitcher| N[Audio Narration .wav]
 ```
 
 ---

@@ -11,8 +11,6 @@ namespace LectureSmith.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     // Static converters for ComboBox display names
-    public static readonly FuncValueConverter<Course, string> CourseDisplayConverter =
-        new(c => c.DisplayName());
     public static readonly FuncValueConverter<LectureMode, string> LectureModeDisplayConverter =
         new(m => m.DisplayName());
     public static readonly FuncValueConverter<OutputFormat, string> OutputFormatDisplayConverter =
@@ -33,20 +31,19 @@ public partial class MainWindowViewModel : ViewModelBase
     private CancellationTokenSource? _cts;
 
     // === Dropdowns ===
-    public Course[] Courses { get; } = Enum.GetValues<Course>();
+    public ObservableCollection<string> Courses { get; } = [];
     public OutputFormat[] OutputFormats { get; } = Enum.GetValues<OutputFormat>();
     public LectureMode[] LectureModes { get; } = Enum.GetValues<LectureMode>();
     public SlideProcessingMode[] SlideProcessingModes { get; } = Enum.GetValues<SlideProcessingMode>();
     public NoteLanguage[] Languages { get; } = Enum.GetValues<NoteLanguage>();
     public GeminiModelInfo[] AvailableModels { get; } = GeminiService.AvailableModels;
 
-    [ObservableProperty] private Course _selectedCourse = Course.FundamentalsOfSoftwareEngineering;
+    [ObservableProperty] private string _selectedCourse = string.Empty;
     [ObservableProperty] private OutputFormat _selectedFormat = OutputFormat.Obsidian;
     [ObservableProperty] private LectureMode _selectedMode = LectureMode.MissedLecture;
     [ObservableProperty] private GeminiModelInfo _selectedModel = GeminiService.AvailableModels[1]; // gemini-3.5-flash
     [ObservableProperty] private SlideProcessingMode _selectedSlideProcessing = SlideProcessingMode.TextOnly;
     [ObservableProperty] private NoteLanguage _selectedLanguage = NoteLanguage.Auto;
-    [ObservableProperty] private string _customCourseName = string.Empty;
 
     // === Files ===
     [ObservableProperty] private UploadedFile? _slidesFile;
@@ -57,7 +54,6 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private bool _isApiKeyValid;
     [ObservableProperty] private string _apiKeyStatus = "Not configured";
     [ObservableProperty] private bool _enableThinking;
-    [ObservableProperty] private bool _generateAudio;
 
     // === Extra notes ===
     [ObservableProperty] private string _extraNotes = string.Empty;
@@ -79,7 +75,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool HasLivePreview => !string.IsNullOrEmpty(LivePreview);
 
     public bool CanGenerate => SlidesFile != null && IsApiKeyValid && !IsGenerating && !string.IsNullOrWhiteSpace(OutputPath);
-    public bool IsCustomCourse => SelectedCourse == Course.Custom;
 
     public MainWindowViewModel()
     {
@@ -98,10 +93,28 @@ public partial class MainWindowViewModel : ViewModelBase
         _settingsService.Load();
         ApiKey = _settingsService.Settings.ApiKey;
         OutputPath = _settingsService.Settings.LastOutputPath;
-        GenerateAudio = _settingsService.Settings.GenerateAudio;
 
         var savedModel = GeminiService.FindModelById(_settingsService.Settings.PreferredModelId);
         SelectedModel = savedModel;
+
+        // Load Course History
+        Courses.Clear();
+        if (_settingsService.Settings.CourseHistory != null && _settingsService.Settings.CourseHistory.Count > 0)
+        {
+            foreach (var course in _settingsService.Settings.CourseHistory)
+            {
+                Courses.Add(course);
+            }
+        }
+        else
+        {
+            // Pre-populate with some default suggestions on first load
+            Courses.Add("Fundamentals of Software Engineering");
+            Courses.Add("Advanced OOP");
+            Courses.Add("Data Management");
+        }
+
+        SelectedCourse = Courses.FirstOrDefault() ?? string.Empty;
 
         // Try environment variables if saved key is empty
         if (string.IsNullOrWhiteSpace(ApiKey))
@@ -165,10 +178,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanGenerate));
     }
 
-    partial void OnSelectedCourseChanged(Course value)
-    {
-        OnPropertyChanged(nameof(IsCustomCourse));
-    }
+
 
     partial void OnEnableThinkingChanged(bool value)
     {
@@ -297,10 +307,29 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (SlidesFile == null || !IsApiKeyValid) return;
 
+        // Save SelectedCourse to history if it is a new non-empty course name
+        var currentCourse = SelectedCourse?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(currentCourse))
+        {
+            if (!Courses.Contains(currentCourse))
+            {
+                Courses.Add(currentCourse);
+            }
+            if (_settingsService.Settings.CourseHistory == null)
+            {
+                _settingsService.Settings.CourseHistory = new();
+            }
+            if (!_settingsService.Settings.CourseHistory.Contains(currentCourse))
+            {
+                _settingsService.Settings.CourseHistory.Add(currentCourse);
+            }
+        }
+
         IsGenerating = true;
         ProgressPercent = 0;
         ProgressMessage = "Starting...";
         StatusMessage = string.Empty;
+        IsStatusError = false;
         _cts = new CancellationTokenSource();
         GenerationResult? result = null;
 
@@ -308,12 +337,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             var settings = new GenerationSettings
             {
-                Course = SelectedCourse,
-                CustomCourseName = CustomCourseName,
+                CourseName = currentCourse,
                 Format = SelectedFormat,
                 Mode = SelectedMode,
                 Language = SelectedLanguage,
-                GenerateAudio = GenerateAudio,
                 SlideProcessing = SelectedSlideProcessing,
                 ExtraNotes = ExtraNotes,
                 OutputPath = OutputPath,
@@ -324,7 +351,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
             // Save user preferences
             _settingsService.Settings.LastOutputPath = OutputPath;
-            _settingsService.Settings.GenerateAudio = GenerateAudio;
             _settingsService.Save();
 
             // Reset live preview

@@ -211,18 +211,9 @@
               <!-- Course -->
               <TextBlock Text="Course:" FontSize="12" Foreground="#999"/>
               <ComboBox ItemsSource="{Binding Courses}"
-                        SelectedItem="{Binding SelectedCourse}">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="m:Course">
-                    <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.CourseDisplayConverter}}"/>
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-
-              <!-- Custom course name (visible when Custom is selected) -->
-              <TextBox Text="{Binding CustomCourseName}"
-                       Watermark="Type course name, e.g. 'Medicine' or 'Physics'"
-                       IsVisible="{Binding IsCustomCourse}"/>
+                        SelectedItem="{Binding SelectedCourse}"
+                        IsEditable="True"
+                        Text="{Binding SelectedCourse}"/>
 
               <!-- Mode -->
               <TextBlock Text="Mode:" FontSize="12" Foreground="#999"/>
@@ -281,6 +272,8 @@
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
+              <TextBlock Text="🟢 Free models  •  🔴 Paid models (billing is handled by Google AI Studio, not LectureSmith)"
+                         FontSize="10" Foreground="#666" Margin="2,2,0,4" TextWrapping="Wrap"/>
 
               <!-- Slide Processing -->
               <TextBlock Text="Slide Processing:" FontSize="12" Foreground="#999"/>
@@ -293,15 +286,6 @@
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
-
-              <!-- Generate Audio Toggle -->
-              <CheckBox IsChecked="{Binding GenerateAudio}" 
-                        Margin="0,4,0,0">
-                <StackPanel>
-                  <TextBlock Text="Generate Audio Narration (TTS)" Foreground="#e0e0e0" FontSize="13"/>
-                  <TextBlock Text="Takes longer, saves an audio file to listen to." Foreground="#999" FontSize="11"/>
-                </StackPanel>
-              </CheckBox>
 
               <!-- Enable Thinking Toggle -->
               <CheckBox IsChecked="{Binding EnableThinking}" 

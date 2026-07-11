@@ -74,48 +74,8 @@ public class NoteGeneratorService
         result.MarkdownContent = await CallGeminiAsync(settings, systemPrompt, userContent,
             result.SlideImagePaths, progress, liveText, ct);
 
-        // Step 6: Generate Audio if requested
-        if (settings.GenerateAudio)
-        {
-            progress?.Report(new ProgressUpdate("Generating audio narration (this may take a minute)...", 90));
-            Directory.CreateDirectory(settings.OutputPath);
-            
-            var cleanText = CleanMarkdownForAudio(result.MarkdownContent);
-            var audioPath = Path.Combine(settings.OutputPath, $"{settings.EffectiveCourseName} - Narration.wav");
-            var speechProgress = new Progress<string>(msg => progress?.Report(new ProgressUpdate(msg, 90)));
-            await _gemini.GenerateSpeechAsync(cleanText, audioPath, speechProgress, ct);
-        }
-
         progress?.Report(new ProgressUpdate("Notes generated successfully!", 95));
         return result;
-    }
-
-    private static string CleanMarkdownForAudio(string markdown)
-    {
-        // 1. Remove standard markdown image patterns: ![alt](url) and ![[url]]
-        var clean = Regex.Replace(markdown, @"!\[.*?\]\(.*?\)", "");
-        clean = Regex.Replace(clean, @"!\[\[.*?\]\]", "");
-
-        // 2. Remove 'Slide X — ' or 'Slide X - ' header prefixes. Keep the actual title.
-        clean = Regex.Replace(clean, @"(?i)##\s*Slide\s*\d+\s*[-—]\s*", "");
-
-        // 3. Strip header hashes
-        clean = Regex.Replace(clean, @"^#+\s*", "", RegexOptions.Multiline);
-
-        // 4. Strip bold and italic
-        clean = Regex.Replace(clean, @"\*\*(.*?)\*\*", "$1");
-        clean = Regex.Replace(clean, @"\*(.*?)\*", "$1");
-
-        // 5. Strip blockquote brackets
-        clean = Regex.Replace(clean, @"^>\s*", "", RegexOptions.Multiline);
-
-        // 6. Strip Markdown table divider rows (e.g. |---|---|)
-        clean = Regex.Replace(clean, @"\|[-\s]+\|[-\s|]*", "");
-        
-        // 7. Replace table cell bars with commas for natural reading pauses
-        clean = clean.Replace("|", ", ");
-
-        return clean.Trim();
     }
 
     // ── Pipeline step helpers ─────────────────────────────────────────
@@ -207,14 +167,9 @@ public class NoteGeneratorService
         sb.AppendLine();
         sb.AppendLine("CONTEXT:");
 
-        // Course context — use custom name if provided
-        if (settings.Course == Course.Custom && !string.IsNullOrWhiteSpace(settings.CustomCourseName))
+        if (!string.IsNullOrWhiteSpace(settings.CourseName))
         {
-            sb.AppendLine($"- Course: {settings.CustomCourseName}");
-        }
-        else
-        {
-            sb.AppendLine($"- Course: {settings.Course.DisplayName()} — {settings.Course.AiContext()}");
+            sb.AppendLine($"- Course: {settings.CourseName}");
         }
 
         sb.AppendLine("- Student: University student");
