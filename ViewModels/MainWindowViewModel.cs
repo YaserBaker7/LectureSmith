@@ -36,12 +36,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public LectureMode[] LectureModes { get; } = Enum.GetValues<LectureMode>();
     public SlideProcessingMode[] SlideProcessingModes { get; } = Enum.GetValues<SlideProcessingMode>();
     public NoteLanguage[] Languages { get; } = Enum.GetValues<NoteLanguage>();
-    public GeminiModelInfo[] AvailableModels { get; } = GeminiService.AvailableModels;
+    public ObservableCollection<GeminiModelInfo> AvailableModels { get; } = [GeminiService.OfflineErrorModel];
 
     [ObservableProperty] private string _selectedCourse = string.Empty;
     [ObservableProperty] private OutputFormat _selectedFormat = OutputFormat.Obsidian;
     [ObservableProperty] private LectureMode _selectedMode = LectureMode.MissedLecture;
-    [ObservableProperty] private GeminiModelInfo _selectedModel = GeminiService.AvailableModels[1]; // gemini-3.5-flash
+    [ObservableProperty] private GeminiModelInfo? _selectedModel = GeminiService.OfflineErrorModel;
     [ObservableProperty] private SlideProcessingMode _selectedSlideProcessing = SlideProcessingMode.TextOnly;
     [ObservableProperty] private NoteLanguage _selectedLanguage = NoteLanguage.Auto;
 
@@ -71,6 +71,8 @@ public partial class MainWindowViewModel : ViewModelBase
     // === Token estimate & live preview ===
     [ObservableProperty] private string _estimatedTokenInfo = string.Empty;
     [ObservableProperty] private string _livePreview = string.Empty;
+    [ObservableProperty] private string _weeklyTokensDisplay = "0";
+    [ObservableProperty] private string _monthlyTokensDisplay = "0";
 
     public bool HasLivePreview => !string.IsNullOrEmpty(LivePreview);
 
@@ -85,6 +87,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _outputExporterService = new OutputExporterService();
         _settingsService = new SettingsService();
 
+        TempFileCleanupService.RunBackgroundCleanup();
         LoadSettings();
     }
 
@@ -94,8 +97,9 @@ public partial class MainWindowViewModel : ViewModelBase
         ApiKey = _settingsService.Settings.ApiKey;
         OutputPath = _settingsService.Settings.LastOutputPath;
 
-        var savedModel = GeminiService.FindModelById(_settingsService.Settings.PreferredModelId);
+        var savedModel = GeminiService.FindModelById(AvailableModels, _settingsService.Settings.PreferredModelId);
         SelectedModel = savedModel;
+        UpdateTokenStatsDisplay();
 
         // Load Course History
         Courses.Clear();
@@ -124,11 +128,22 @@ public partial class MainWindowViewModel : ViewModelBase
         if (!string.IsNullOrWhiteSpace(ApiKey))
         {
             _geminiService.SetApiKey(ApiKey);
-            _geminiService.SetModel(SelectedModel.Id, EnableThinking);
+            if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
+            {
+                _geminiService.SetModel(SelectedModel.Id, EnableThinking);
+            }
             
             // Asynchronously validate the key in the background to avoid blocking the UI thread
             _ = ValidateLoadedKeyAsync();
         }
+    }
+
+    private void UpdateTokenStatsDisplay()
+    {
+        var w = _settingsService.Settings.GetTokensThisWeek();
+        var m = _settingsService.Settings.GetTokensThisMonth();
+        WeeklyTokensDisplay = w >= 1000 ? $"{w / 1000.0:F1}k" : w.ToString();
+        MonthlyTokensDisplay = m >= 1000 ? $"{m / 1000.0:F1}k" : m.ToString();
     }
 
     private async Task ValidateLoadedKeyAsync()
@@ -143,6 +158,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 IsApiKeyValid = true;
                 ApiKeyStatus = string.IsNullOrEmpty(error) ? "✓ API key is valid!" : $"✓ {error}";
+                _ = RefreshAvailableModelsAsync();
             }
             else
             {
@@ -157,21 +173,55 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    partial void OnSelectedModelChanged(GeminiModelInfo value)
+    private async Task RefreshAvailableModelsAsync()
     {
-        if (_geminiService.IsConfigured && value != null)
+        try
+        {
+            var fetched = await _geminiService.FetchAvailableModelsAsync();
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                var currentId = SelectedModel?.Id ?? _settingsService.Settings.PreferredModelId;
+                AvailableModels.Clear();
+                if (fetched != null && fetched.Count > 0 && !(fetched.Count == 1 && string.IsNullOrEmpty(fetched[0].Id)))
+                {
+                    foreach (var m in fetched)
+                    {
+                        AvailableModels.Add(m);
+                    }
+                    var match = AvailableModels.FirstOrDefault(m => m.Id == currentId);
+                    SelectedModel = match ?? AvailableModels.FirstOrDefault();
+                }
+                else
+                {
+                    AvailableModels.Add(GeminiService.OfflineErrorModel);
+                    SelectedModel = GeminiService.OfflineErrorModel;
+                }
+            });
+        }
+        catch
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                AvailableModels.Clear();
+                AvailableModels.Add(GeminiService.OfflineErrorModel);
+                SelectedModel = GeminiService.OfflineErrorModel;
+            });
+        }
+    }
+
+    partial void OnSelectedModelChanged(GeminiModelInfo? value)
+    {
+        if (_geminiService.IsConfigured && value != null && !string.IsNullOrEmpty(value.Id))
         {
             _geminiService.SetModel(value.Id, EnableThinking);
         }
-        if (value != null)
+        if (value != null && !string.IsNullOrEmpty(value.Id))
         {
             _settingsService.Settings.PreferredModelId = value.Id;
             _settingsService.Save();
         }
         OnPropertyChanged(nameof(CanGenerate));
     }
-
-
 
     partial void OnEnableThinkingChanged(bool value)
     {
@@ -188,6 +238,29 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnLivePreviewChanged(string value)
     {
         OnPropertyChanged(nameof(HasLivePreview));
+    }
+
+    [RelayCommand]
+    private async Task CopyToClipboard()
+    {
+        if (string.IsNullOrEmpty(LivePreview)) return;
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var topLevel = Avalonia.Controls.TopLevel.GetTopLevel(desktop.MainWindow);
+                if (topLevel?.Clipboard != null)
+                {
+                    await topLevel.Clipboard.SetTextAsync(LivePreview);
+                    StatusMessage = "✓ Copied markdown to clipboard!";
+                    IsStatusError = false;
+                }
+            }
+        }
+        catch
+        {
+            StatusMessage = "Failed to copy to clipboard.";
+        }
     }
     partial void OnIsApiKeyValidChanged(bool value) => OnPropertyChanged(nameof(CanGenerate));
     partial void OnIsGeneratingChanged(bool value) => OnPropertyChanged(nameof(CanGenerate));
@@ -230,7 +303,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
         ApiKeyStatus = "Validating...";
         _geminiService.SetApiKey(ApiKey);
-        _geminiService.SetModel(SelectedModel.Id, EnableThinking);
+        if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
+        {
+            _geminiService.SetModel(SelectedModel.Id, EnableThinking);
+        }
 
         var (valid, error) = await _geminiService.ValidateApiKeyAsync();
         if (valid)
@@ -251,6 +327,18 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ToggleSettings()
     {
         ShowSettings = !ShowSettings;
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        ShowSettings = true;
+    }
+
+    [RelayCommand]
+    private void CloseSettings()
+    {
+        ShowSettings = false;
     }
 
     [RelayCommand]
@@ -337,7 +425,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 SlideProcessing = SelectedSlideProcessing,
                 ExtraNotes = ExtraNotes,
                 OutputPath = OutputPath,
-                SelectedModelId = SelectedModel.Id,
+                SelectedModelId = SelectedModel?.Id ?? "",
                 SlidesFile = SlidesFile,
                 BookFiles = [.. BookFiles]
             };
@@ -368,6 +456,21 @@ public partial class MainWindowViewModel : ViewModelBase
             ProgressPercent = 95;
 
             var outputFile = await _outputExporterService.ExportAsync(result, settings);
+
+            // Record token usage
+            var outputTokens = (result?.MarkdownContent?.Length ?? 0) / 4;
+            var inputTokens = 1000;
+            if (!string.IsNullOrEmpty(EstimatedTokenInfo))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(EstimatedTokenInfo, @"\d+[\d,]*");
+                if (match.Success && int.TryParse(match.Value.Replace(",", ""), out var parsedIt))
+                    inputTokens = parsedIt;
+            }
+            if (_settingsService.Settings.TokenUsageHistory == null)
+                _settingsService.Settings.TokenUsageHistory = new();
+            _settingsService.Settings.TokenUsageHistory.Add(new TokenRecord(DateTime.Now, inputTokens, outputTokens));
+            _settingsService.Save();
+            UpdateTokenStatsDisplay();
 
             ProgressPercent = 100;
             ProgressMessage = "Done!";

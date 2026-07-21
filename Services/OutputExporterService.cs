@@ -65,7 +65,7 @@ public class OutputExporterService
         var pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .Build();
-        var htmlBody = Markdown.ToHtml(result.MarkdownContent, pipeline);
+        var htmlBody = Markdig.Markdown.ToHtml(result.MarkdownContent, pipeline);
 
         // Convert image paths to base64 for self-contained HTML
         htmlBody = await EmbedImagesAsBase64Async(htmlBody, settings.OutputPath);

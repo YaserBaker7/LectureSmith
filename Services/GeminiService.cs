@@ -21,25 +21,15 @@ public class GeminiService
     /// Available text-generation models the user can choose from.
     /// Updated from https://ai.google.dev/gemini-api/docs/models and pricing page.
     /// </summary>
-    public static readonly GeminiModelInfo[] AvailableModels =
-    [
-        new("gemini-3.5-pro",               "Gemini 3.5 Pro (2M Tokens)",           IsFree: false),
-        new("gemini-3.5-flash",             "Gemini 3.5 Flash (1M Tokens)",         IsFree: true),
-        new("gemini-3.1-pro-preview",       "Gemini 3.1 Pro Preview (1M Tokens)",   IsFree: false),
-        new("gemini-3.1-flash-lite-preview","Gemini 3.1 Flash-Lite (1M Tokens)",    IsFree: true),
-        new("gemini-2.5-pro",               "Gemini 2.5 Pro (1M Tokens)",           IsFree: false),
-        new("gemini-2.5-flash",             "Gemini 2.5 Flash (1M Tokens)",         IsFree: true),
-    ];
+    public static readonly GeminiModelInfo OfflineErrorModel = new("", "✗ Cannot fetch models (Offline or invalid key)", false);
+    public static readonly GeminiModelInfo[] AvailableModels = [];
 
-    /// <summary>
-    /// Finds a model info by its ID, or returns the first model as fallback.
-    /// </summary>
-    public static GeminiModelInfo FindModelById(string? modelId)
+    public static GeminiModelInfo? FindModelById(IEnumerable<GeminiModelInfo> models, string? modelId)
     {
         if (string.IsNullOrWhiteSpace(modelId))
-            return AvailableModels[0];
+            return models.FirstOrDefault();
 
-        return Array.Find(AvailableModels, m => m.Id == modelId) ?? AvailableModels[0];
+        return models.FirstOrDefault(m => m.Id == modelId) ?? models.FirstOrDefault();
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);
@@ -58,14 +48,16 @@ public class GeminiService
         var genConfig = new GenerationConfig
         {
             MaxOutputTokens = 65536,
-            Temperature = 0.7f,
-            // ThinkingBudget = 0 disables thinking so the full 65 536 token
-            // budget goes to actual content instead of internal reasoning.
-            ThinkingConfig = new ThinkingConfig
-            {
-                ThinkingBudget = thinkingEnabled ? -1 : 0
-            }
+            Temperature = 0.7f
         };
+
+        if (thinkingEnabled)
+        {
+            genConfig.ThinkingConfig = new ThinkingConfig
+            {
+                ThinkingBudget = -1
+            };
+        }
 
         _model = _googleAi.GenerativeModel(
             model: modelId,
@@ -73,7 +65,7 @@ public class GeminiService
     }
 
     /// <summary>
-    /// Generates text-only content using the Gemini API.
+    /// Generates text-only content using the Gemini API with exponential backoff retries.
     /// </summary>
     public async Task<string> GenerateAsync(string systemPrompt, string userContent,
         IProgress<string>? progress = null, CancellationToken ct = default)
@@ -81,13 +73,16 @@ public class GeminiService
         EnsureModelConfigured();
 
         var combinedPrompt = BuildCombinedPrompt(systemPrompt, userContent);
-        var response = _model!.GenerateContentStream(combinedPrompt);
 
-        return await StreamResponseAsync(response, progress, ct);
+        return await ExecuteWithRetryAsync(async () =>
+        {
+            var response = _model!.GenerateContentStream(combinedPrompt);
+            return await StreamResponseAsync(response, progress, ct);
+        });
     }
 
     /// <summary>
-    /// Generates content with inline slide images using the Gemini multimodal API.
+    /// Generates content with inline slide images using the Gemini multimodal API with exponential backoff retries.
     /// </summary>
     public async Task<string> GenerateWithImagesAsync(string systemPrompt, string userContent,
         List<string> imagePaths, IProgress<string>? progress = null, CancellationToken ct = default)
@@ -105,9 +100,28 @@ public class GeminiService
             }
         }
 
-        var response = _model!.GenerateContentStream(request);
+        return await ExecuteWithRetryAsync(async () =>
+        {
+            var response = _model!.GenerateContentStream(request);
+            return await StreamResponseAsync(response, progress, ct);
+        });
+    }
 
-        return await StreamResponseAsync(response, progress, ct);
+    private static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action, int maxRetries = 3)
+    {
+        int attempt = 0;
+        while (true)
+        {
+            attempt++;
+            try
+            {
+                return await action();
+            }
+            catch (Exception ex) when (attempt <= maxRetries && (ex.Message.Contains("429") || ex.Message.Contains("Quota") || ex.Message.Contains("503") || ex.Message.Contains("500")))
+            {
+                await Task.Delay((int)Math.Pow(2, attempt) * 1000);
+            }
+        }
     }
 
     /// <summary>
@@ -137,6 +151,83 @@ public class GeminiService
         {
             return (false, $"API key validation failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Dynamically fetches available Gemini models from Google AI Studio.
+    /// Tags models with Free (Flash/Lite) vs Paid (Pro/Preview) indicators.
+    /// </summary>
+    public async Task<List<GeminiModelInfo>> FetchAvailableModelsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey)) return [.. AvailableModels];
+
+        try
+        {
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models?key={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode) return [OfflineErrorModel];
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+            var fetchedList = new List<GeminiModelInfo>();
+
+            if (doc.RootElement.TryGetProperty("models", out var modelsArray))
+            {
+                foreach (var modelElement in modelsArray.EnumerateArray())
+                {
+                    var name = modelElement.GetProperty("name").GetString() ?? "";
+                    var id = name.StartsWith("models/") ? name.Substring("models/".Length) : name;
+
+                    var dispName = modelElement.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? id : id;
+
+                    if (!IsAllowedTextModel(id, dispName, out bool isFree)) continue;
+
+                    // Filter only models that support generateContent
+                    if (modelElement.TryGetProperty("supportedGenerationMethods", out var methods))
+                    {
+                        bool supportsGen = false;
+                        foreach (var m in methods.EnumerateArray())
+                        {
+                            if (m.GetString() == "generateContent") { supportsGen = true; break; }
+                        }
+                        if (!supportsGen) continue;
+                    }
+
+                    fetchedList.Add(new GeminiModelInfo(id, $"{dispName}", isFree));
+                }
+            }
+
+            return fetchedList.Count > 0 ? fetchedList : [OfflineErrorModel];
+        }
+        catch
+        {
+            return [OfflineErrorModel];
+        }
+    }
+
+    private static bool IsAllowedTextModel(string id, string dispName, out bool isFree)
+    {
+        var combined = $"{id} {dispName}".ToLowerInvariant();
+        isFree = false;
+
+        // Disallow non-text / specialized models (Lyria, TTS, Robotics, Banana, Nano, Computer Use, Deep Research, Agent, Imagen, Audio, Speech)
+        if (combined.Contains("lyria") || combined.Contains("tts") || combined.Contains("speech") ||
+            combined.Contains("audio") || combined.Contains("imagen") || combined.Contains("banana") ||
+            combined.Contains("nano") || combined.Contains("robotics") || combined.Contains("computer") ||
+            combined.Contains("deep research") || combined.Contains("deep-research") || combined.Contains("agent") ||
+            combined.Contains("omni") || combined.Contains("embedding"))
+        {
+            return false;
+        }
+
+        // Must be a Gemini text model
+        if (!combined.Contains("gemini")) return false;
+
+        // Free tier models: Flash / Lite models
+        // Paid tier models: Pro / Max / Ultra models
+        isFree = combined.Contains("flash") || combined.Contains("lite");
+        return true;
     }
 
     // ── Private helpers ───────────────────────────────────────────────

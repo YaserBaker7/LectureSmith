@@ -2,34 +2,39 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LectureSmith.ViewModels"
         xmlns:m="using:LectureSmith.Models"
+        xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
         x:Class="LectureSmith.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="LectureSmith"
-        Width="1100" Height="720"
-        MinWidth="900" MinHeight="600"
+        Width="1180" Height="760"
+        MinWidth="950" MinHeight="650"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
-        Background="#0f0f1a"
+        Background="#0b0b14"
         Icon="avares://LectureSmith/Assets/app-icon.ico">
 
   <Window.Styles>
     <!-- Global styles -->
     <Style Selector="TextBlock">
-      <Setter Property="Foreground" Value="#e0e0e0"/>
+      <Setter Property="Foreground" Value="#e2e8f0"/>
+      <Setter Property="FontFamily" Value="Segoe UI, Inter, sans-serif"/>
     </Style>
     <Style Selector="TextBox">
-      <Setter Property="Background" Value="#1a1a2e"/>
-      <Setter Property="Foreground" Value="#e0e0e0"/>
-      <Setter Property="BorderBrush" Value="#2d3a5a"/>
-      <Setter Property="CornerRadius" Value="6"/>
-      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="Background" Value="#15172b"/>
+      <Setter Property="Foreground" Value="#f1f5f9"/>
+      <Setter Property="BorderBrush" Value="#2a2e4a"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="10,8"/>
+    </Style>
+    <Style Selector="TextBox:focus">
+      <Setter Property="BorderBrush" Value="#8b5cf6"/>
     </Style>
     <Style Selector="ComboBox">
-      <Setter Property="Background" Value="#1a1a2e"/>
-      <Setter Property="Foreground" Value="#e0e0e0"/>
-      <Setter Property="BorderBrush" Value="#2d3a5a"/>
-      <Setter Property="CornerRadius" Value="6"/>
-      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="Background" Value="#15172b"/>
+      <Setter Property="Foreground" Value="#f1f5f9"/>
+      <Setter Property="BorderBrush" Value="#2a2e4a"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="10,8"/>
       <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
 
@@ -47,121 +52,147 @@
       <Setter Property="Background" Value="#6d28d9"/>
     </Style>
     <Style Selector="Button.primary:disabled /template/ ContentPresenter">
-      <Setter Property="Background" Value="#3b3b52"/>
-      <Setter Property="Foreground" Value="#666"/>
+      <Setter Property="Background" Value="#2a2e4a"/>
+      <Setter Property="Foreground" Value="#64748b"/>
+    </Style>
+
+    <!-- Back button -->
+    <Style Selector="Button.backBtn">
+      <Setter Property="Background" Value="#1e1b4b"/>
+      <Setter Property="Foreground" Value="#c4b5fd"/>
+      <Setter Property="BorderBrush" Value="#312e81"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <Style Selector="Button.backBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#312e81"/>
+      <Setter Property="Foreground" Value="White"/>
     </Style>
 
     <!-- Danger button -->
     <Style Selector="Button.danger">
-      <Setter Property="Background" Value="#dc2626"/>
+      <Setter Property="Background" Value="#ef4444"/>
       <Setter Property="Foreground" Value="White"/>
-      <Setter Property="Padding" Value="12,8"/>
-      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="CornerRadius" Value="8"/>
     </Style>
 
     <!-- Small button -->
     <Style Selector="Button.small">
       <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#999"/>
-      <Setter Property="Padding" Value="6,2"/>
-      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Foreground" Value="#94a3b8"/>
+      <Setter Property="Padding" Value="6,3"/>
+      <Setter Property="CornerRadius" Value="6"/>
       <Setter Property="FontSize" Value="11"/>
     </Style>
     <Style Selector="Button.small:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2d3a5a"/>
+      <Setter Property="Background" Value="#2a2e4a"/>
+    </Style>
+
+    <!-- Preview Toggle Tab Styles -->
+    <Style Selector="Button.previewTab">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#94a3b8"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+    <Style Selector="Button.previewTab:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2a2e4a"/>
+      <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.previewTab.active">
+      <Setter Property="Background" Value="#7c3aed"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+    <Style Selector="Button.previewTab.active:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#6d28d9"/>
+      <Setter Property="Foreground" Value="White"/>
     </Style>
 
     <!-- Settings button -->
     <Style Selector="Button.settings">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#a78bfa"/>
-      <Setter Property="Padding" Value="8,4"/>
-      <Setter Property="CornerRadius" Value="6"/>
-      <Setter Property="FontSize" Value="18"/>
+      <Setter Property="Background" Value="#1e1b4b"/>
+      <Setter Property="Foreground" Value="#c4b5fd"/>
+      <Setter Property="Padding" Value="10,6"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="FontSize" Value="14"/>
     </Style>
     <Style Selector="Button.settings:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#1a1a2e"/>
+      <Setter Property="Background" Value="#312e81"/>
     </Style>
 
     <!-- Secondary button -->
     <Style Selector="Button.secondary">
-      <Setter Property="Background" Value="#222543"/>
-      <Setter Property="Foreground" Value="#a78bfa"/>
-      <Setter Property="BorderBrush" Value="#2d3a5a"/>
+      <Setter Property="Background" Value="#1e2238"/>
+      <Setter Property="Foreground" Value="#c4b5fd"/>
+      <Setter Property="BorderBrush" Value="#2a2e4a"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="FontWeight" Value="Normal"/>
+      <Setter Property="FontWeight" Value="Medium"/>
       <Setter Property="Padding" Value="14,8"/>
-      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="CornerRadius" Value="8"/>
       <Setter Property="HorizontalAlignment" Value="Stretch"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
     <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2d3a5a"/>
-      <Setter Property="BorderBrush" Value="#7c3aed"/>
+      <Setter Property="Background" Value="#2a2e4a"/>
+      <Setter Property="BorderBrush" Value="#8b5cf6"/>
       <Setter Property="Foreground" Value="White"/>
     </Style>
-    <Style Selector="Button.secondary:disabled /template/ ContentPresenter">
-      <Setter Property="Background" Value="#12122a"/>
-      <Setter Property="Foreground" Value="#444"/>
-      <Setter Property="BorderBrush" Value="#1a1a2e"/>
-    </Style>
 
-    <!-- Make text inside all buttons inherit button foreground -->
     <Style Selector="Button TextBlock">
       <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}"/>
     </Style>
 
     <!-- Drop zone -->
     <Style Selector="Border.dropzone">
-      <Setter Property="BorderBrush" Value="#2d3a5a"/>
-      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="BorderBrush" Value="#2a2e4a"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
       <Setter Property="CornerRadius" Value="8"/>
-      <Setter Property="Background" Value="#12122a"/>
-      <Setter Property="Padding" Value="16"/>
-      <Setter Property="MinHeight" Value="60"/>
+      <Setter Property="Background" Value="#111322"/>
+      <Setter Property="Padding" Value="14"/>
+      <Setter Property="MinHeight" Value="54"/>
     </Style>
     <Style Selector="Border.dropzone:pointerover">
-      <Setter Property="BorderBrush" Value="#7c3aed"/>
-      <Setter Property="Background" Value="#1a1040"/>
+      <Setter Property="BorderBrush" Value="#8b5cf6"/>
+      <Setter Property="Background" Value="#1e1b4b"/>
     </Style>
 
     <!-- Card -->
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="#16163a"/>
-      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Background" Value="#131525"/>
+      <Setter Property="CornerRadius" Value="12"/>
       <Setter Property="Padding" Value="16"/>
-      <Setter Property="Margin" Value="0,5"/>
-      <Setter Property="BorderBrush" Value="#2d3a5a"/>
+      <Setter Property="Margin" Value="0,0,0,12"/>
+      <Setter Property="BorderBrush" Value="#1e2238"/>
       <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
     <!-- Section header -->
     <Style Selector="TextBlock.sectionHeader">
       <Setter Property="FontSize" Value="13"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Foreground" Value="#a78bfa"/>
-      <Setter Property="Margin" Value="0,0,0,6"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#c4b5fd"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
     <!-- File chip -->
     <Style Selector="Border.fileChip">
-      <Setter Property="Background" Value="#1e2d4a"/>
-      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Background" Value="#1e2238"/>
+      <Setter Property="CornerRadius" Value="8"/>
       <Setter Property="Padding" Value="10,6"/>
-      <Setter Property="Margin" Value="0,3"/>
-    </Style>
-
-    <!-- Accent bar -->
-    <Style Selector="Border.accentBar">
-      <Setter Property="Height" Value="3"/>
-      <Setter Property="CornerRadius" Value="0,0,4,4"/>
+      <Setter Property="Margin" Value="0,4"/>
     </Style>
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,*">
+  <Grid RowDefinitions="Auto,Auto,*">
 
-    <!-- Top accent gradient bar -->
-    <Border Grid.Row="0" Classes="accentBar">
+    <!-- Top accent bar -->
+    <Border Grid.Row="0" Height="3">
       <Border.Background>
         <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
           <GradientStop Color="#7c3aed" Offset="0"/>
@@ -171,301 +202,353 @@
       </Border.Background>
     </Border>
 
-    <!-- Main content area -->
-    <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="16,12,16,12">
+    <!-- App Header Bar -->
+    <Border Grid.Row="1" Background="#111322" BorderBrush="#1e2238" BorderThickness="0,0,0,1" Padding="20,12">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="🎓" FontSize="26"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="LectureSmith" FontSize="20" FontWeight="Bold" Foreground="#c4b5fd"/>
+            <TextBlock Text="AI Lecture Notes &amp; Study Assistant" FontSize="11" Foreground="#64748b"/>
+          </StackPanel>
+        </StackPanel>
 
-      <!-- ═══════ LEFT COLUMN ═══════ -->
-      <ScrollViewer Grid.Column="0" Margin="0,0,8,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="0">
-
-          <!-- Header -->
-          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <TextBlock Text="🎓" FontSize="26"/>
-              <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="LectureSmith" FontSize="20" FontWeight="Bold" Foreground="#a78bfa"/>
-                <TextBlock Text="AI-Powered Lecture Notes" FontSize="10" Foreground="#666"/>
-              </StackPanel>
-            </StackPanel>
-            <Button Classes="settings" Grid.Column="1" Command="{Binding ToggleSettingsCommand}" Content="⚙" ToolTip.Tip="Settings"/>
-          </Grid>
-
-          <!-- Settings panel (collapsible) -->
-          <Border Classes="card" IsVisible="{Binding ShowSettings}">
-            <StackPanel Spacing="6">
-              <TextBlock Classes="sectionHeader" Text="⚙ API Settings"/>
-              <TextBlock Text="Gemini API Key:" FontSize="12" Foreground="#999"/>
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBox Text="{Binding ApiKey}" PasswordChar="•" Watermark="Enter your Gemini API key..."/>
-                <Button Grid.Column="1" Margin="6,0,0,0" Command="{Binding SaveApiKeyCommand}" Content="Save" Classes="secondary" Padding="14,8" HorizontalAlignment="Right"/>
-              </Grid>
-              <TextBlock Text="{Binding ApiKeyStatus}" FontSize="11" Foreground="#999"/>
-              <TextBlock Text="Get a free key: aistudio.google.com" FontSize="10" Foreground="#555"/>
+        <!-- Token usage badges in middle header -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+          <Border Background="#1e1b4b" CornerRadius="8" Padding="12,5" BorderBrush="#312e81" BorderThickness="1">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="🗓️ Tokens This Week:" FontSize="11" Foreground="#a78bfa"/>
+              <TextBlock Text="{Binding WeeklyTokensDisplay}" FontSize="11" FontWeight="Bold" Foreground="#38bdf8"/>
             </StackPanel>
           </Border>
-
-          <!-- Configuration Card -->
-          <Border Classes="card">
-            <StackPanel Spacing="8">
-              <TextBlock Classes="sectionHeader" Text="📋 Configuration"/>
-
-              <!-- Course -->
-              <TextBlock Text="Course:" FontSize="12" Foreground="#999"/>
-              <ComboBox ItemsSource="{Binding Courses}"
-                        SelectedItem="{Binding SelectedCourse}"
-                        IsEditable="True"
-                        Text="{Binding SelectedCourse}"
-                        PlaceholderText="e.g., Software Engineering or Physics"/>
-              <TextBlock Text="Type your course name. It will be saved to this dropdown for future use."
-                         FontSize="10" Foreground="#666" Margin="2,2,0,4" TextWrapping="Wrap"/>
-
-              <!-- Mode -->
-              <TextBlock Text="Mode:" FontSize="12" Foreground="#999"/>
-              <ComboBox ItemsSource="{Binding LectureModes}"
-                        SelectedItem="{Binding SelectedMode}">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="m:LectureMode">
-                    <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LectureModeDisplayConverter}}"/>
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-
-              <!-- Language -->
-              <TextBlock Text="Language:" FontSize="12" Foreground="#999"/>
-              <ComboBox ItemsSource="{Binding Languages}"
-                        SelectedItem="{Binding SelectedLanguage}">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="m:NoteLanguage">
-                    <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LanguageDisplayConverter}}"/>
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-
-              <!-- Output Format -->
-              <TextBlock Text="Output Format:" FontSize="12" Foreground="#999"/>
-              <ComboBox ItemsSource="{Binding OutputFormats}"
-                        SelectedItem="{Binding SelectedFormat}">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="m:OutputFormat">
-                    <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.OutputFormatDisplayConverter}}"/>
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-
-              <!-- Clean Up Temporary Cache -->
-              <Button Classes="secondary"
-                      Command="{Binding CleanupCacheCommand}"
-                      Margin="0,8,0,0">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <TextBlock Text="🧹" />
-                  <TextBlock Text="Clean Up App Cache" />
-                </StackPanel>
-              </Button>
-              <TextBlock Text="{Binding CleanupStatus}" 
-                         Foreground="#00d084" 
-                         FontSize="11" 
-                         IsVisible="{Binding CleanupStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-              <!-- AI Model -->
-              <TextBlock Text="AI Model:" FontSize="12" Foreground="#999"/>
-              <ComboBox ItemsSource="{Binding AvailableModels}"
-                        SelectedItem="{Binding SelectedModel}">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="m:GeminiModelInfo">
-                    <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.ModelDisplayConverter}}"/>
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-              <TextBlock Text="🟢 Free models  •  🔴 Paid models (billing is handled by Google AI Studio, not LectureSmith)"
-                         FontSize="10" Foreground="#666" Margin="2,2,0,4" TextWrapping="Wrap"/>
-
-              <!-- Slide Processing -->
-              <TextBlock Text="Slide Processing:" FontSize="12" Foreground="#999"/>
-              <ComboBox ItemsSource="{Binding SlideProcessingModes}"
-                        SelectedItem="{Binding SelectedSlideProcessing}"
-                        ToolTip.Tip="Text Only: fast, text extraction only&#x0a;OCR Enhanced: runs OCR to catch code screenshots&#x0a;Vision AI: sends slide images to AI (more tokens)">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="m:SlideProcessingMode">
-                    <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.SlideProcessingDisplayConverter}}"/>
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-
-              <!-- Enable Thinking Toggle -->
-              <CheckBox IsChecked="{Binding EnableThinking}" 
-                        Margin="0,4,0,0">
-                <StackPanel>
-                  <TextBlock Text="Enable AI Thinking (Reasoning)" Foreground="#e0e0e0" FontSize="13"/>
-                  <TextBlock Text="Uses tokens for reasoning — disable for longer outputs." Foreground="#999" FontSize="11"/>
-                </StackPanel>
-              </CheckBox>
+          <Border Background="#1e1b4b" CornerRadius="8" Padding="12,5" BorderBrush="#312e81" BorderThickness="1">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="📅 Tokens This Month:" FontSize="11" Foreground="#a78bfa"/>
+              <TextBlock Text="{Binding MonthlyTokensDisplay}" FontSize="11" FontWeight="Bold" Foreground="#34d399"/>
             </StackPanel>
           </Border>
         </StackPanel>
-      </ScrollViewer>
 
-      <!-- ═══════ RIGHT COLUMN ═══════ -->
-      <ScrollViewer Grid.Column="1" Margin="8,0,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="0">
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Classes="settings" Command="{Binding OpenSettingsCommand}" Content="⚙ API Key Settings" ToolTip.Tip="Configure API Key" IsVisible="{Binding !ShowSettings}"/>
+        </StackPanel>
+      </Grid>
+    </Border>
 
-          <!-- Materials Card -->
-          <Border Classes="card">
-            <StackPanel Spacing="8">
-              <TextBlock Classes="sectionHeader" Text="📎 Materials"/>
+    <!-- Grid Row 2: PAGE NAVIGATION (Main Workspace vs Dedicated Settings View) -->
+    <Grid Grid.Row="2">
 
-              <!-- Slides drop zone -->
-              <TextBlock Text="Lecture Slides (required)" FontSize="12" Foreground="#999"/>
-              <Border Classes="dropzone" Name="SlidesDropZone"
-                      DragDrop.AllowDrop="True"
-                      IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNull}}"
-                      Tapped="SlidesDropZone_Tapped">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Text="📄 Drag &amp; drop slides PDF here" HorizontalAlignment="Center" Foreground="#777"/>
-                  <TextBlock Text="or click to browse" HorizontalAlignment="Center" FontSize="11" Foreground="#555"/>
+      <!-- ════════════════ PAGE 1: MAIN WORKSPACE ════════════════ -->
+      <Grid IsVisible="{Binding !ShowSettings}" ColumnDefinitions="420,*" Margin="16,14,16,14">
+
+        <!-- ═══════ LEFT SIDEBAR / CONFIGURATION ═══════ -->
+        <ScrollViewer Grid.Column="0" Margin="0,0,10,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="0">
+
+            <!-- Materials Card -->
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="sectionHeader" Text="📎 Lecture Materials"/>
+
+                <!-- Slides drop zone -->
+                <TextBlock Text="Lecture Slides PDF (required):" FontSize="11" Foreground="#94a3b8"/>
+                <Border Classes="dropzone" Name="SlidesDropZone"
+                        DragDrop.AllowDrop="True"
+                        IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNull}}"
+                        Tapped="SlidesDropZone_Tapped">
+                  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="📄 Drag &amp; drop slides PDF here" HorizontalAlignment="Center" Foreground="#94a3b8" FontSize="12"/>
+                    <TextBlock Text="or click to browse" HorizontalAlignment="Center" FontSize="10" Foreground="#64748b"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- Slides file chip -->
+                <Border Classes="fileChip" IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Text="📑" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{Binding SlidesFile.FileName}" VerticalAlignment="Center" Margin="8,0" FontSize="12"/>
+                    <Button Grid.Column="2" Classes="small" Command="{Binding RemoveSlidesCommand}" Content="✕"/>
+                  </Grid>
+                </Border>
+
+                <!-- Books drop zone -->
+                <TextBlock Text="Reference Books (optional):" FontSize="11" Foreground="#94a3b8" Margin="0,4,0,0"/>
+                <Border Classes="dropzone" Name="BooksDropZone"
+                        DragDrop.AllowDrop="True"
+                        Tapped="BooksDropZone_Tapped">
+                  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="📚 Drag &amp; drop reference book PDFs" HorizontalAlignment="Center" Foreground="#94a3b8" FontSize="12"/>
+                    <TextBlock Text="or click to browse" HorizontalAlignment="Center" FontSize="10" Foreground="#64748b"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- Book files list -->
+                <ItemsControl ItemsSource="{Binding BookFiles}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="m:UploadedFile">
+                      <Border Classes="fileChip">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
+                          <TextBlock Text="📕" VerticalAlignment="Center"/>
+                          <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center" FontSize="11"/>
+                          <TextBox Grid.Column="2" Width="140" Text="{Binding ChapterInfo}" Watermark="Ch 10, p305-340" FontSize="10"/>
+                          <Button Grid.Column="3" Classes="small"
+                                  Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RemoveBookCommand}"
+                                  CommandParameter="{Binding}"
+                                  Content="✕"/>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <!-- Generation Settings Card -->
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="sectionHeader" Text="⚙ Note Generation Settings"/>
+
+                <!-- Course -->
+                <StackPanel Spacing="3">
+                  <TextBlock Text="Course Name:" FontSize="11" Foreground="#94a3b8"/>
+                  <ComboBox ItemsSource="{Binding Courses}"
+                            SelectedItem="{Binding SelectedCourse}"
+                            IsEditable="True"
+                            Text="{Binding SelectedCourse}"
+                            PlaceholderText="e.g., Software Engineering or Organic Chemistry"/>
                 </StackPanel>
-              </Border>
 
-              <!-- Slides file chip -->
-              <Border Classes="fileChip" IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                  <TextBlock Text="📑" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Column="1" Text="{Binding SlidesFile.FileName}" VerticalAlignment="Center" Margin="8,0"/>
-                  <Button Grid.Column="2" Classes="small" Command="{Binding RemoveSlidesCommand}" Content="✕"/>
+                <!-- Mode & Language -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                  <StackPanel Grid.Column="0" Spacing="3">
+                    <TextBlock Text="Mode:" FontSize="11" Foreground="#94a3b8"/>
+                    <ComboBox ItemsSource="{Binding LectureModes}" SelectedItem="{Binding SelectedMode}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:LectureMode">
+                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LectureModeDisplayConverter}}"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="Language:" FontSize="11" Foreground="#94a3b8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:NoteLanguage">
+                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LanguageDisplayConverter}}"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
                 </Grid>
-              </Border>
 
-              <!-- Books drop zone -->
-              <TextBlock Text="Reference Books (optional)" FontSize="12" Foreground="#999" Margin="0,6,0,0"/>
-              <Border Classes="dropzone" Name="BooksDropZone"
-                      DragDrop.AllowDrop="True"
-                      Tapped="BooksDropZone_Tapped">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Text="📚 Drag &amp; drop book PDFs here" HorizontalAlignment="Center" Foreground="#777"/>
-                  <TextBlock Text="or click to browse" HorizontalAlignment="Center" FontSize="11" Foreground="#555"/>
+                <!-- AI Model -->
+                <StackPanel Spacing="3">
+                  <TextBlock Text="AI Model Endpoint:" FontSize="11" Foreground="#94a3b8"/>
+                  <ComboBox ItemsSource="{Binding AvailableModels}" SelectedItem="{Binding SelectedModel}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:GeminiModelInfo">
+                        <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.ModelDisplayConverter}}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Text="🟢 Free Tier (Google AI Studio)  •  🔴 Paid / Custom Models" FontSize="10" Foreground="#64748b"/>
+                </StackPanel>
+
+                <!-- Slide Processing & Output Format -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                  <StackPanel Grid.Column="0" Spacing="3">
+                    <TextBlock Text="Slide Processing:" FontSize="11" Foreground="#94a3b8"/>
+                    <ComboBox ItemsSource="{Binding SlideProcessingModes}" SelectedItem="{Binding SelectedSlideProcessing}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:SlideProcessingMode">
+                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.SlideProcessingDisplayConverter}}"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="Output Format:" FontSize="11" Foreground="#94a3b8"/>
+                    <ComboBox ItemsSource="{Binding OutputFormats}" SelectedItem="{Binding SelectedFormat}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:OutputFormat">
+                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.OutputFormatDisplayConverter}}"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                </Grid>
+
+                <!-- AI Thinking Checkbox -->
+                <CheckBox IsChecked="{Binding EnableThinking}" Margin="0,2,0,0">
+                  <StackPanel>
+                    <TextBlock Text="Enable AI Reasoning / Thinking" Foreground="#f1f5f9" FontSize="12"/>
+                    <TextBlock Text="Uses reasoning tokens for deep explanations." Foreground="#64748b" FontSize="10"/>
+                  </StackPanel>
+                </CheckBox>
+              </StackPanel>
+            </Border>
+
+            <!-- Save Location & Extra Notes -->
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="sectionHeader" Text="💾 Export &amp; Custom Instructions"/>
+                <StackPanel Spacing="3">
+                  <TextBlock Text="Save Location:" FontSize="11" Foreground="#94a3b8"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Text="{Binding OutputPath}" Watermark="Select output folder..."/>
+                    <Button Grid.Column="1" Content="Browse" Classes="secondary" Padding="14,8" Name="BrowseOutputButton" Click="BrowseOutput_Click"/>
+                  </Grid>
+                </StackPanel>
+                <StackPanel Spacing="3" Margin="0,4,0,0">
+                  <TextBlock Text="Extra Instructions (optional):" FontSize="11" Foreground="#94a3b8"/>
+                  <TextBox Text="{Binding ExtraNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="42" MaxHeight="80" Watermark="e.g., 'Include code snippets' or 'Focus on formulas'"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Cache Clean button -->
+            <Button Classes="secondary" Command="{Binding CleanupCacheCommand}" Margin="0,0,0,8">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="🧹"/>
+                <TextBlock Text="Clean Up Temp Cache"/>
+              </StackPanel>
+            </Button>
+            <TextBlock Text="{Binding CleanupStatus}" Foreground="#34d399" FontSize="11" Margin="0,0,0,8" IsVisible="{Binding CleanupStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+            <!-- Generate Button -->
+            <Button Classes="primary" Command="{Binding GenerateCommand}" IsEnabled="{Binding CanGenerate}">
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                <TextBlock Text="⚡" FontSize="16"/>
+                <TextBlock Text="Generate Lecture Notes" FontSize="15"/>
+              </StackPanel>
+            </Button>
+
+            <!-- Cancel Button -->
+            <Button Classes="danger" Margin="0,6,0,0" IsVisible="{Binding IsGenerating}" Command="{Binding CancelGenerationCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Cancel Generation"/>
+
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- ═══════ RIGHT WORKSPACE / LIVE PREVIEW ═══════ -->
+        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="10,0,0,0">
+
+          <!-- Workspace Header Bar -->
+          <Border Grid.Row="0" Background="#131525" CornerRadius="12,12,0,0" BorderBrush="#1e2238" BorderThickness="1,1,1,0" Padding="14,10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="📖" FontSize="16"/>
+                <TextBlock Text="Live Note Preview" FontSize="14" FontWeight="Bold" Foreground="#c4b5fd"/>
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <TextBlock Text="{Binding EstimatedTokenInfo}" FontSize="11" Foreground="#a78bfa" IsVisible="{Binding EstimatedTokenInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+              </StackPanel>
+
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Classes="tab" Command="{Binding CopyToClipboardCommand}" IsEnabled="{Binding HasLivePreview}" ToolTip.Tip="Copy generated markdown to clipboard">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="📋"/>
+                    <TextBlock Text="Copy Markdown"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Preview Box Body -->
+          <Border Grid.Row="1" Background="#0c0e1a" BorderBrush="#1e2238" BorderThickness="1" Padding="16">
+            <Grid>
+              <!-- Empty state -->
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding !HasLivePreview}">
+                <TextBlock Text="📝" FontSize="42" HorizontalAlignment="Center" Foreground="#334155"/>
+                <TextBlock Text="No notes generated yet" FontSize="15" FontWeight="SemiBold" Foreground="#475569" HorizontalAlignment="Center"/>
+                <TextBlock Text="Upload lecture slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="#334155" HorizontalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- Active preview view -->
+              <ScrollViewer IsVisible="{Binding HasLivePreview}" Name="LivePreviewScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock Text="{Binding LivePreview}"
+                                     FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                     FontSize="12.5"
+                                     LineHeight="20"
+                                     Foreground="#cbd5e1"
+                                     TextWrapping="Wrap"/>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+
+          <!-- Workspace Footer / Status Bar -->
+          <Border Grid.Row="2" Background="#131525" CornerRadius="0,0,12,12" BorderBrush="#1e2238" BorderThickness="1,0,1,1" Padding="14,10">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="4">
+                <ProgressBar IsVisible="{Binding IsGenerating}" Value="{Binding ProgressPercent}" Maximum="100" Height="6" Foreground="#7c3aed" Background="#1e2238" CornerRadius="3"/>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding ProgressMessage}" FontSize="11" Foreground="#94a3b8"/>
+                  <TextBlock Grid.Column="1" Text="{Binding LivePreview.Length, StringFormat='{}{0:N0} characters'}" FontSize="10" Foreground="#64748b"/>
+                </Grid>
+                <TextBlock Text="{Binding StatusMessage}" FontSize="11" TextWrapping="Wrap" Classes.error="{Binding IsStatusError}" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <TextBlock.Styles>
+                    <Style Selector="TextBlock">
+                      <Setter Property="Foreground" Value="#34d399"/>
+                    </Style>
+                    <Style Selector="TextBlock.error">
+                      <Setter Property="Foreground" Value="#f87171"/>
+                    </Style>
+                  </TextBlock.Styles>
+                </TextBlock>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+        </Grid>
+
+      </Grid>
+
+      <!-- ════════════════ PAGE 2: DEDICATED API KEY SETTINGS VIEW ════════════════ -->
+      <ScrollViewer IsVisible="{Binding ShowSettings}" Margin="32,24">
+        <StackPanel Spacing="20" MaxWidth="700" HorizontalAlignment="Left">
+
+          <!-- Top Left Back Arrow Header -->
+          <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+            <Button Classes="backBtn" Command="{Binding CloseSettingsCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="←" FontSize="16" FontWeight="Bold"/>
+                <TextBlock Text="Back to Workspace" FontSize="13" FontWeight="SemiBold"/>
+              </StackPanel>
+            </Button>
+            <TextBlock Text="🔑 Gemini API Key Settings" FontSize="20" FontWeight="Bold" Foreground="#c4b5fd" VerticalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- API Key Settings Card -->
+          <Border Classes="card" Padding="24">
+            <StackPanel Spacing="14">
+              <TextBlock Classes="sectionHeader" Text="Google AI Studio API Key Configuration"/>
+              <TextBlock Text="Paste your Gemini API key below. Keys are saved securely in your local AppData directory and never sent to any third-party server." FontSize="12.5" Foreground="#94a3b8" TextWrapping="Wrap" LineHeight="20"/>
+
+              <StackPanel Spacing="6" Margin="0,6,0,0">
+                <TextBlock Text="API Key:" FontSize="12" FontWeight="SemiBold" Foreground="#c4b5fd"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBox Text="{Binding ApiKey}" PasswordChar="•" Watermark="Enter your Gemini API key (AIzaSy...)"/>
+                  <Button Grid.Column="1" Command="{Binding SaveApiKeyCommand}" Content="Save &amp; Validate" Classes="primary" Padding="18,10"/>
+                </Grid>
+              </StackPanel>
+
+              <Border Background="#1e1b4b" CornerRadius="8" Padding="14,10" BorderBrush="#312e81" BorderThickness="1" Margin="0,4,0,0">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Status:" FontSize="11" Foreground="#a78bfa" FontWeight="Bold"/>
+                  <TextBlock Text="{Binding ApiKeyStatus}" FontSize="12" Foreground="#38bdf8"/>
                 </StackPanel>
               </Border>
 
-              <!-- Book files list -->
-              <ItemsControl ItemsSource="{Binding BookFiles}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="m:UploadedFile">
-                    <Border Classes="fileChip">
-                      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
-                        <TextBlock Text="📕" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="2" Width="160" Text="{Binding ChapterInfo}" Watermark="e.g., Ch 10, p305-340" FontSize="11"/>
-                        <Button Grid.Column="3" Classes="small"
-                                Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RemoveBookCommand}"
-                                CommandParameter="{Binding}"
-                                Content="✕"/>
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
+              <TextBlock Text="Need a free Gemini API key? Get one at: https://aistudio.google.com" FontSize="11" Foreground="#64748b" Margin="0,4,0,0"/>
             </StackPanel>
           </Border>
-
-          <!-- Extra Notes Card -->
-          <Border Classes="card">
-            <StackPanel Spacing="4">
-              <TextBlock Classes="sectionHeader" Text="📝 Extra Notes for AI"/>
-              <TextBox Text="{Binding ExtraNotes}"
-                       AcceptsReturn="True"
-                       TextWrapping="Wrap"
-                       MinHeight="50"
-                       MaxHeight="100"
-                       Watermark="Optional: 'Focus on diagrams' or 'Include exam tips'"/>
-            </StackPanel>
-          </Border>
-
-          <!-- Output Path -->
-          <Border Classes="card">
-            <StackPanel Spacing="4">
-              <TextBlock Classes="sectionHeader" Text="💾 Save Location"/>
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                <TextBox Text="{Binding OutputPath}" Watermark="Select output folder..."/>
-                <Button Grid.Column="1" Content="Browse" Classes="secondary" Padding="14,8"
-                        Name="BrowseOutputButton" Click="BrowseOutput_Click"/>
-              </Grid>
-            </StackPanel>
-          </Border>
-
-          <!-- Token estimate -->
-          <TextBlock Text="{Binding EstimatedTokenInfo}"
-                     FontSize="12"
-                     Foreground="#a78bfa"
-                     Margin="4,4,0,0"
-                     IsVisible="{Binding EstimatedTokenInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-
-          <!-- Generate Button -->
-          <Button Classes="primary" Margin="0,6"
-                  Command="{Binding GenerateCommand}"
-                  IsEnabled="{Binding CanGenerate}">
-            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-              <TextBlock Text="⚡" FontSize="16"/>
-              <TextBlock Text="Generate Notes" FontSize="15"/>
-            </StackPanel>
-          </Button>
-
-          <!-- Cancel button (visible during generation) -->
-          <Button Classes="danger" Margin="0,0,0,6"
-                  IsVisible="{Binding IsGenerating}"
-                  Command="{Binding CancelGenerationCommand}"
-                  HorizontalAlignment="Center"
-                  Content="Cancel Generation"/>
-
-          <!-- Progress -->
-          <Border Classes="card" IsVisible="{Binding IsGenerating}">
-            <StackPanel Spacing="6">
-              <TextBlock Classes="sectionHeader" Text="⏳ Progress"/>
-              <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="8"
-                           Foreground="#7c3aed" Background="#1a1a2e"/>
-              <TextBlock Text="{Binding ProgressMessage}" FontSize="12" Foreground="#999"/>
-            </StackPanel>
-          </Border>
-
-          <!-- Live Preview -->
-          <Border Classes="card" IsVisible="{Binding HasLivePreview}">
-            <StackPanel Spacing="6">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Classes="sectionHeader" Text="📖 Live Preview"/>
-                <TextBlock Grid.Column="1" FontSize="11" Foreground="#555"
-                           VerticalAlignment="Center"
-                           Text="{Binding LivePreview.Length, StringFormat='{}{0:N0} chars'}"/>
-              </Grid>
-              <Border Background="#0d0d1a" CornerRadius="6" Padding="10" BorderBrush="#1e2d4a" BorderThickness="1">
-                <ScrollViewer MaxHeight="300" Name="LivePreviewScroller">
-                  <TextBlock Text="{Binding LivePreview}"
-                             FontFamily="Consolas, Courier New, monospace"
-                             FontSize="12"
-                             Foreground="#c0c0c0"
-                             TextWrapping="Wrap"/>
-                </ScrollViewer>
-              </Border>
-            </StackPanel>
-          </Border>
-
-          <!-- Status message -->
-          <TextBlock Text="{Binding StatusMessage}"
-                     FontSize="12"
-                     TextWrapping="Wrap"
-                     Margin="0,4"
-                     Classes.error="{Binding IsStatusError}"
-                     IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-            <TextBlock.Styles>
-              <Style Selector="TextBlock">
-                <Setter Property="Foreground" Value="#4ade80"/>
-              </Style>
-              <Style Selector="TextBlock.error">
-                <Setter Property="Foreground" Value="#f87171"/>
-              </Style>
-            </TextBlock.Styles>
-          </TextBlock>
 
         </StackPanel>
       </ScrollViewer>
 
     </Grid>
+
   </Grid>
 </Window>

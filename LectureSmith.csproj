@@ -7,6 +7,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <InformationalVersion>2.0.0</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +31,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="Markdig" Version="0.40.0" />
+    <PackageReference Include="Markdown.Avalonia" Version="11.0.2" />
+    <PackageReference Include="Markdown.Avalonia.Tight" Version="11.0.2" />
     <PackageReference Include="Mscc.GenerativeAI" Version="2.5.2" />
     <PackageReference Include="QuestPDF" Version="2025.4.0" />
     <PackageReference Include="Tesseract" Version="5.2.0" />

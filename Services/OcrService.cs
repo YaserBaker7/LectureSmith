@@ -59,27 +59,42 @@ public class OcrService : IDisposable
     }
 
     /// <summary>
-    /// Runs OCR on multiple slide images. Returns one string per slide.
+    /// Runs OCR on multiple slide images concurrently using multi-core processing. Returns one string per slide in order.
     /// </summary>
     public async Task<List<string>> ExtractTextFromImagesAsync(List<string> imagePaths,
         IProgress<(int current, int total)>? progress = null)
     {
         ThrowIfDisposed();
-        return await Task.Run(() =>
-        {
-            var results = new List<string>(imagePaths.Count);
-            var engine = GetEngine();
+        if (imagePaths.Count == 0) return [];
 
-            for (int i = 0; i < imagePaths.Count; i++)
+        EnsureNativeLibraryPath();
+        var tessDataFolder = GetTessDataFolder();
+        if (tessDataFolder == null) throw new InvalidOperationException("Tesseract trained data not found.");
+
+        var results = new string[imagePaths.Count];
+        int completedCount = 0;
+        int maxDegree = Math.Clamp(Environment.ProcessorCount, 1, 8);
+
+        await Parallel.ForAsync(0, imagePaths.Count, new ParallelOptions { MaxDegreeOfParallelism = maxDegree }, (i, ct) =>
+        {
+            try
             {
+                using var localEngine = new TesseractEngine(tessDataFolder, "eng", EngineMode.Default);
                 using var img = Pix.LoadFromFile(imagePaths[i]);
-                using var page = engine.Process(img);
-                results.Add(page.GetText().Trim());
-                progress?.Report((i + 1, imagePaths.Count));
+                using var page = localEngine.Process(img);
+                results[i] = page.GetText().Trim();
+            }
+            catch
+            {
+                results[i] = string.Empty;
             }
 
-            return results;
+            var count = Interlocked.Increment(ref completedCount);
+            progress?.Report((count, imagePaths.Count));
+            return ValueTask.CompletedTask;
         });
+
+        return [.. results];
     }
 
     public void Dispose()
