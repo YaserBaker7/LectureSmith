@@ -8,6 +8,7 @@
         Width="1100" Height="720"
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Background="#0f0f1a"
         Icon="avares://LectureSmith/Assets/app-icon.ico">
 
