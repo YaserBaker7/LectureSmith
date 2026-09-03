@@ -4,6 +4,7 @@
         xmlns:m="using:LectureSmith.Models"
         xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
         x:Class="LectureSmith.Views.MainWindow"
+        x:Name="Root"
         x:DataType="vm:MainWindowViewModel"
         Title="LectureSmith"
         Width="1180" Height="760"
@@ -14,6 +15,44 @@
         Icon="avares://LectureSmith/Assets/app-icon.ico">
 
   <Window.Styles>
+    <!-- Slide Card in Skip Dialog -->
+    <Style Selector="Border.slideCard">
+      <Setter Property="Background" Value="#15172b"/>
+      <Setter Property="BorderBrush" Value="#2a2e4a"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Border.slideCard:pointerover">
+      <Setter Property="BorderBrush" Value="#8b5cf6"/>
+      <Setter Property="Background" Value="#1e1b4b"/>
+    </Style>
+    <Style Selector="Border.slideCard.skipped">
+      <Setter Property="BorderBrush" Value="#ef4444"/>
+      <Setter Property="Background" Value="#2b1117"/>
+    </Style>
+    <Style Selector="Border.slideCard.skipped:pointerover">
+      <Setter Property="BorderBrush" Value="#f87171"/>
+      <Setter Property="Background" Value="#3a161e"/>
+    </Style>
+
+    <!-- Slide Card Button wrapper -->
+    <Style Selector="Button.slideCardBtn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Margin" Value="6"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.slideCardBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.slideCardBtn:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
     <!-- Global styles -->
     <Style Selector="TextBlock">
       <Setter Property="Foreground" Value="#e2e8f0"/>
@@ -292,7 +331,7 @@
                           <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center" FontSize="11"/>
                           <TextBox Grid.Column="2" Width="140" Text="{Binding ChapterInfo}" Watermark="Ch 10, p305-340" FontSize="10"/>
                           <Button Grid.Column="3" Classes="small"
-                                  Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RemoveBookCommand}"
+                                  Command="{Binding $parent[Window].DataContext.RemoveBookCommand}"
                                   CommandParameter="{Binding}"
                                   Content="✕"/>
                         </Grid>
@@ -386,6 +425,21 @@
                     <TextBlock Text="Uses reasoning tokens for deep explanations." Foreground="#64748b" FontSize="10"/>
                   </StackPanel>
                 </CheckBox>
+
+                <!-- Slide Skipping -->
+                <StackPanel Spacing="4" Margin="0,6,0,0">
+                  <TextBlock Text="Slides to Skip (optional):" FontSize="11" Foreground="#94a3b8"/>
+                  <Button Classes="secondary" Command="{Binding OpenSkipSlidesPopupCommand}"
+                          IsEnabled="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                      <TextBlock Text="📋"/>
+                      <TextBlock Text="Select Slides to Skip"/>
+                    </StackPanel>
+                  </Button>
+                  <TextBlock Text="{Binding SkippedSlidesDisplayText}" FontSize="10" Foreground="#a78bfa"
+                             IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                             Margin="0,2,0,0"/>
+                </StackPanel>
               </StackPanel>
             </Border>
 
@@ -446,37 +500,171 @@
               </StackPanel>
 
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Button Classes="tab" Command="{Binding CopyToClipboardCommand}" IsEnabled="{Binding HasLivePreview}" ToolTip.Tip="Copy generated markdown to clipboard">
-                  <StackPanel Orientation="Horizontal" Spacing="4">
-                    <TextBlock Text="📋"/>
-                    <TextBlock Text="Copy Markdown"/>
+                <!-- Start Follow-up Session Button -->
+                <Button Classes="tab" Command="{Binding StartFollowUpSessionCommand}"
+                        IsVisible="{Binding !IsFollowUpSessionActive}"
+                        IsEnabled="{Binding HasLivePreview}"
+                        ToolTip.Tip="Start interactive follow-up Q&amp;A session about the lecture">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="💬"/>
+                    <TextBlock Text="Start Follow-up Session"/>
+                  </StackPanel>
+                </Button>
+
+                <!-- End Follow-up Session Button -->
+                <Button Classes="small" Command="{Binding EndFollowUpSessionCommand}"
+                        IsVisible="{Binding IsFollowUpSessionActive}"
+                        Foreground="#f87171"
+                        ToolTip.Tip="Close chat session and restore full preview">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="✕"/>
+                    <TextBlock Text="End Session"/>
                   </StackPanel>
                 </Button>
               </StackPanel>
             </Grid>
           </Border>
 
-          <!-- Preview Box Body -->
-          <Border Grid.Row="1" Background="#0c0e1a" BorderBrush="#1e2238" BorderThickness="1" Padding="16">
-            <Grid>
-              <!-- Empty state -->
-              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding !HasLivePreview}">
-                <TextBlock Text="📝" FontSize="42" HorizontalAlignment="Center" Foreground="#334155"/>
-                <TextBlock Text="No notes generated yet" FontSize="15" FontWeight="SemiBold" Foreground="#475569" HorizontalAlignment="Center"/>
-                <TextBlock Text="Upload lecture slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="#334155" HorizontalAlignment="Center"/>
-              </StackPanel>
+          <!-- Preview Box Body / Split Chat View -->
+          <Grid Grid.Row="1">
 
-              <!-- Active preview view -->
-              <ScrollViewer IsVisible="{Binding HasLivePreview}" Name="LivePreviewScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                <SelectableTextBlock Text="{Binding LivePreview}"
-                                     FontFamily="Cascadia Code, Consolas, Courier New, monospace"
-                                     FontSize="12.5"
-                                     LineHeight="20"
-                                     Foreground="#cbd5e1"
-                                     TextWrapping="Wrap"/>
-              </ScrollViewer>
+            <!-- Mode A: Full Preview (When Follow-up Session is NOT active) -->
+            <Border IsVisible="{Binding !IsFollowUpSessionActive}"
+                    Background="#0c0e1a" BorderBrush="#1e2238" BorderThickness="1" Padding="16">
+              <Grid>
+                <!-- Empty state -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding !HasLivePreview}">
+                  <TextBlock Text="📝" FontSize="42" HorizontalAlignment="Center" Foreground="#334155"/>
+                  <TextBlock Text="No notes generated yet" FontSize="15" FontWeight="SemiBold" Foreground="#475569" HorizontalAlignment="Center"/>
+                  <TextBlock Text="Upload lecture slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="#334155" HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Active preview view -->
+                <ScrollViewer IsVisible="{Binding HasLivePreview}" Name="LivePreviewScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                  <SelectableTextBlock Text="{Binding LivePreview}"
+                                       FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                       FontSize="12.5"
+                                       LineHeight="20"
+                                       Foreground="#cbd5e1"
+                                       TextWrapping="Wrap"/>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+
+            <!-- Mode B: Split View (When Follow-up Session IS active: Top = Preview, Bottom = Chat) -->
+            <Grid IsVisible="{Binding IsFollowUpSessionActive}">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="1*" MinHeight="80"/>
+                <RowDefinition Height="6"/>
+                <RowDefinition Height="2*" MinHeight="200"/>
+              </Grid.RowDefinitions>
+
+              <!-- Top Half: Live Note Preview -->
+              <Border Grid.Row="0" Background="#0c0e1a" BorderBrush="#1e2238" BorderThickness="1,1,1,0" Padding="14">
+                <Grid RowDefinitions="Auto,*">
+                  <Border Grid.Row="0" Background="#15172b" CornerRadius="6" Padding="8,4" Margin="0,0,0,8">
+                    <TextBlock Text="📄 Generated Lecture Notes (Reference)" FontSize="11" FontWeight="SemiBold" Foreground="#a78bfa"/>
+                  </Border>
+                  <ScrollViewer Grid.Row="1" Name="LivePreviewScrollerSplit" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <SelectableTextBlock Text="{Binding LivePreview}"
+                                         FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                         FontSize="12"
+                                         LineHeight="19"
+                                         Foreground="#cbd5e1"
+                                         TextWrapping="Wrap"/>
+                  </ScrollViewer>
+                </Grid>
+              </Border>
+
+              <!-- Draggable Resizer Bar -->
+              <GridSplitter Grid.Row="1" Background="#1e2238" ResizeDirection="Rows" ShowsPreview="True" Cursor="SizeNorthSouth"/>
+
+              <!-- Bottom Half: Follow-up Chat Box -->
+              <Border Grid.Row="2" Background="#101322" BorderBrush="#1e2238" BorderThickness="1,0,1,1">
+                <Grid RowDefinitions="Auto,*,Auto">
+
+                  <!-- Chat Sub-Header -->
+                  <Border Grid.Row="0" Background="#15172b" BorderBrush="#2a2e4a" BorderThickness="0,0,0,1" Padding="12,7">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="💬" FontSize="13"/>
+                        <TextBlock Text="Follow-up Questions &amp; Discussion" FontSize="12" FontWeight="Bold" Foreground="#c4b5fd"/>
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="AI maintains context from the lecture notes" FontSize="10" Foreground="#64748b" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                      <ProgressBar Grid.Column="2" IsVisible="{Binding IsSendingFollowUp}" IsIndeterminate="True" Width="80" Height="4" Foreground="#7c3aed" VerticalAlignment="Center"/>
+                    </Grid>
+                  </Border>
+
+                  <!-- Chat Message History -->
+                  <ScrollViewer Grid.Row="1" Name="ChatScroller" Padding="12,8" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding ChatMessages}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:ChatMessage">
+                          <Grid Margin="0,6">
+                            <!-- User Message (Right-aligned purple bubble) -->
+                            <Border IsVisible="{Binding IsUser}"
+                                    HorizontalAlignment="Right"
+                                    Background="#7c3aed"
+                                    CornerRadius="12,12,2,12"
+                                    Padding="12,8"
+                                    MaxWidth="550">
+                              <SelectableTextBlock Text="{Binding Content}"
+                                                   Foreground="White"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- AI Message (Left-aligned slate bubble with rich Markdown formatting) -->
+                            <Border IsVisible="{Binding !IsUser}"
+                                    HorizontalAlignment="Left"
+                                    Background="#1c1f36"
+                                    BorderBrush="#2d3254"
+                                    BorderThickness="1"
+                                    CornerRadius="12,12,12,2"
+                                    Padding="14,10"
+                                    MaxWidth="680">
+                              <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <TextBlock Text="🤖 LectureSmith Assistant" FontSize="10" FontWeight="Bold" Foreground="#a78bfa"/>
+                                </StackPanel>
+                                <md:MarkdownScrollViewer Markdown="{Binding Content}"/>
+                              </StackPanel>
+                            </Border>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+
+                  <!-- Chat Input Bar -->
+                  <Border Grid.Row="2" Background="#15172b" BorderBrush="#2a2e4a" BorderThickness="0,1,0,0" Padding="12,10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <TextBox Grid.Column="0"
+                               Text="{Binding FollowUpInput}"
+                               Watermark="Ask a follow-up question about the lecture... (Press Enter to send)"
+                               FontSize="12"
+                               CornerRadius="8"
+                               Padding="12,10"
+                               KeyDown="FollowUpInput_KeyDown"
+                               IsEnabled="{Binding !IsSendingFollowUp}"/>
+                      <Button Grid.Column="1"
+                              Classes="primary"
+                              Command="{Binding SendFollowUpCommand}"
+                              IsEnabled="{Binding !IsSendingFollowUp}"
+                              Padding="18,10">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="Send"/>
+                          <TextBlock Text="➤" FontSize="10"/>
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+
+                </Grid>
+              </Border>
+
             </Grid>
-          </Border>
+          </Grid>
 
           <!-- Workspace Footer / Status Bar -->
           <Border Grid.Row="2" Background="#131525" CornerRadius="0,0,12,12" BorderBrush="#1e2238" BorderThickness="1,0,1,1" Padding="14,10">
@@ -548,6 +736,100 @@
         </StackPanel>
       </ScrollViewer>
 
+    </Grid>
+
+    <!-- ════════════════ MODAL: SELECT SLIDES TO SKIP ════════════════ -->
+    <Grid Grid.RowSpan="3" IsVisible="{Binding ShowSkipSlidesPopup}">
+      <!-- Dimmed Backdrop (Click to close) -->
+      <Button Background="#000000" Opacity="0.75" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+              Command="{Binding CloseSkipSlidesPopupCommand}" Padding="0" BorderThickness="0"/>
+
+      <!-- Modal Dialog Window -->
+      <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+              Background="#131525" BorderBrush="#312e81" BorderThickness="1.5"
+              CornerRadius="14" Padding="24"
+              Width="880" MaxHeight="680">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+
+          <!-- Header -->
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+              <TextBlock Text="📋" FontSize="20"/>
+              <TextBlock Text="Select Slides to Skip" FontSize="18" FontWeight="Bold" Foreground="#c4b5fd"/>
+            </StackPanel>
+            <Button Grid.Column="1" Classes="small" Command="{Binding CloseSkipSlidesPopupCommand}" Content="✕" FontSize="16" Padding="8,4"/>
+          </Grid>
+
+          <!-- Explanation Subtext -->
+          <TextBlock Grid.Row="1"
+                     Text="Click on the slides you want to skip. Skipped slides are still sent to the AI for lecture context, but will appear as 'Skipped' in your final generated notes."
+                     FontSize="12" Foreground="#94a3b8" TextWrapping="Wrap" LineHeight="18"/>
+
+          <!-- Thumbnails Grid in ScrollViewer -->
+          <ScrollViewer Grid.Row="2" MaxHeight="450" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding SlidesThumbnails}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:SkippedSlideInfo">
+                  <Border Classes="slideCard" Classes.skipped="{Binding IsSkipped}"
+                          Width="240" Padding="8" Margin="6"
+                          PointerPressed="SlideCard_PointerPressed">
+                    <StackPanel Spacing="6">
+                      <!-- Top Bar of Slide Card -->
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="{Binding SlideNumber, StringFormat='{}Slide {0}'}"
+                                   FontSize="12" FontWeight="Bold" Foreground="#e2e8f0" VerticalAlignment="Center"/>
+
+                        <!-- Status Badges -->
+                        <Border Grid.Column="1" Background="#ef4444" CornerRadius="4" Padding="6,2"
+                                IsVisible="{Binding IsSkipped}">
+                          <TextBlock Text="SKIPPED" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                        </Border>
+                        <Border Grid.Column="1" Background="#1e1b4b" BorderBrush="#312e81" BorderThickness="1" CornerRadius="4" Padding="6,2"
+                                IsVisible="{Binding !IsSkipped}">
+                          <TextBlock Text="Include" FontSize="9" Foreground="#a78bfa"/>
+                        </Border>
+                      </Grid>
+
+                      <!-- Slide Image with Skip Overlay -->
+                      <Border Background="#0b0b14" CornerRadius="6" ClipToBounds="True" Height="135">
+                        <Grid>
+                          <Image Source="{Binding SlideImage}" Stretch="Uniform"/>
+                          <!-- Red overlay when skipped -->
+                          <Border Background="#cc180505" IsVisible="{Binding IsSkipped}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                              <TextBlock Text="✕" FontSize="36" FontWeight="Bold" Foreground="#ef4444" HorizontalAlignment="Center"/>
+                              <TextBlock Text="SKIPPED" FontSize="11" FontWeight="Bold" Foreground="#f87171" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                          </Border>
+                        </Grid>
+                      </Border>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <!-- Footer with Selected Count & Done Button -->
+          <Border Grid.Row="3" Background="#15172b" CornerRadius="8" Padding="14,10" BorderBrush="#2a2e4a" BorderThickness="1">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{Binding SkippedSlidesDisplayText}" FontSize="12" FontWeight="SemiBold" Foreground="#a78bfa"
+                           IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <TextBlock Text="No slides skipped (all slides will be included)" FontSize="12" Foreground="#64748b"
+                           IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+              </StackPanel>
+              <Button Grid.Column="1" Classes="primary" Command="{Binding CloseSkipSlidesPopupCommand}" Content="Done" Padding="28,8"/>
+            </Grid>
+          </Border>
+
+        </Grid>
+      </Border>
     </Grid>
 
   </Grid>

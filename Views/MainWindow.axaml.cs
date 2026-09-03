@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using LectureSmith.Models;
 using LectureSmith.ViewModels;
 
 namespace LectureSmith.Views;
@@ -27,6 +28,22 @@ public partial class MainWindow : Window
             booksZone.AddHandler(DragDrop.DropEvent, BooksDropZone_Drop);
             booksZone.AddHandler(DragDrop.DragOverEvent, DragOver);
         }
+
+        // Auto-scroll chat to bottom when messages are added
+        DataContextChanged += (s, e) =>
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.ChatMessages.CollectionChanged += (sender, args) =>
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        var scroller = this.FindControl<ScrollViewer>("ChatScroller");
+                        scroller?.ScrollToEnd();
+                    });
+                };
+            }
+        };
     }
 
     private void DragOver(object? sender, DragEventArgs e)
@@ -118,6 +135,38 @@ public partial class MainWindow : Window
         if (folders.Count > 0)
         {
             vm.OutputPath = folders[0].Path.LocalPath;
+        }
+    }
+
+    private void FollowUpInput_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                if (vm.SendFollowUpCommand.CanExecute(null))
+                {
+                    vm.SendFollowUpCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+        }
+    }
+
+    private void SlideCard_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: SkippedSlideInfo slide } && DataContext is MainWindowViewModel vm)
+        {
+            vm.ToggleSlideSkip(slide);
+        }
+    }
+
+    private void SlideCard_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control control && control.DataContext is SkippedSlideInfo slide && DataContext is MainWindowViewModel vm)
+        {
+            vm.ToggleSlideSkip(slide);
+            e.Handled = true;
         }
     }
 }

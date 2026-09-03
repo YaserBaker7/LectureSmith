@@ -32,12 +32,27 @@ public class NoteGeneratorService
         progress?.Report(new ProgressUpdate("Extracting slide images...", 0));
         if (settings.SlidesFile != null)
         {
-            var slidesDir = Path.Combine(Path.GetTempPath(), "LectureSmith", Guid.NewGuid().ToString(), "slides");
-            result.SlideImagePaths = await _pdfExtractor.ExtractSlideImagesAsync(
-                settings.SlidesFile.FilePath, slidesDir,
-                new Progress<(int current, int total)>(p =>
-                    progress?.Report(new ProgressUpdate($"Extracting slide {p.current} of {p.total}...",
-                        (int)(10.0 * p.current / p.total)))));
+            var pdfHash = Path.GetFileNameWithoutExtension(settings.SlidesFile.FilePath).GetHashCode().ToString("X8");
+            var slidesDir = Path.Combine(Path.GetTempPath(), "LectureSmith", $"slides_{pdfHash}");
+
+            if (Directory.Exists(slidesDir))
+            {
+                var existing = Directory.GetFiles(slidesDir, "slide_*.png").OrderBy(f => f).ToList();
+                if (existing.Count > 0)
+                {
+                    result.SlideImagePaths = existing;
+                    progress?.Report(new ProgressUpdate("Reusing cached slide images...", 10));
+                }
+            }
+
+            if (result.SlideImagePaths.Count == 0)
+            {
+                result.SlideImagePaths = await _pdfExtractor.ExtractSlideImagesAsync(
+                    settings.SlidesFile.FilePath, slidesDir,
+                    new Progress<(int current, int total)>(p =>
+                        progress?.Report(new ProgressUpdate($"Extracting slide {p.current} of {p.total}...",
+                            (int)(10.0 * p.current / p.total)))));
+            }
             ct.ThrowIfCancellationRequested();
         }
 
@@ -62,7 +77,7 @@ public class NoteGeneratorService
 
         // Step 4: Build the AI prompt
         progress?.Report(new ProgressUpdate("Building AI prompt...", 25));
-        var systemPrompt = BuildSystemPrompt(settings);
+        var systemPrompt = BuildSystemPrompt(settings, slideTexts.Count);
         var userContent = BuildUserContent(slideTexts, bookTexts, settings);
 
         // Step 4b: Report estimated token count
@@ -73,6 +88,56 @@ public class NoteGeneratorService
         // Step 5: Call Gemini API
         result.MarkdownContent = await CallGeminiAsync(settings, systemPrompt, userContent,
             result.SlideImagePaths, progress, liveText, ct);
+
+        // Step 6: Verify completeness and auto-continue if AI stopped early
+        if (slideTexts.Count > 0)
+        {
+            int lastCoveredSlide = FindHighestCoveredSlide(result.MarkdownContent);
+            int continuationAttempt = 0;
+            const int maxContinuations = 4;
+
+            while (lastCoveredSlide < slideTexts.Count && continuationAttempt < maxContinuations)
+            {
+                ct.ThrowIfCancellationRequested();
+                continuationAttempt++;
+                int startSlide = lastCoveredSlide + 1;
+
+                progress?.Report(new ProgressUpdate(
+                    $"AI covered up to Slide {lastCoveredSlide} of {slideTexts.Count}. Auto-continuing for remaining slides...",
+                    30 + (int)(60.0 * lastCoveredSlide / slideTexts.Count)));
+
+                // Strip premature summary table so it can be re-appended at the very end
+                result.MarkdownContent = StripPrematureSummaryTable(result.MarkdownContent);
+
+                // Build continuation user content containing only remaining slides
+                var continuationUserContent = BuildContinuationUserContent(slideTexts, bookTexts, settings, startSlide);
+                var continuationPrompt = $"You previously generated lecture notes up to Slide {lastCoveredSlide}. " +
+                                         $"There are {slideTexts.Count} slides total in this lecture. " +
+                                         $"Now CONTINUE generating notes starting from Slide {startSlide} through Slide {slideTexts.Count}. " +
+                                         $"Follow the exact same format and style as before. " +
+                                         $"Start directly with '## Slide {startSlide} — [Title]'. Do NOT repeat previous slides or write an introduction. " +
+                                         $"Only write the Key Concepts Summary table AFTER Slide {slideTexts.Count}.";
+
+                var remainingImages = result.SlideImagePaths.Count >= slideTexts.Count
+                    ? result.SlideImagePaths.Skip(startSlide - 1).ToList()
+                    : result.SlideImagePaths;
+
+                liveText?.Report($"\n\n---\n*Continuing notes from Slide {startSlide}...*\n\n");
+
+                var continuationMarkdown = await CallGeminiAsync(settings, systemPrompt,
+                    $"{continuationPrompt}\n\n{continuationUserContent}",
+                    remainingImages, progress, liveText, ct);
+
+                result.MarkdownContent = result.MarkdownContent.TrimEnd() + "\n\n" + continuationMarkdown.TrimStart();
+
+                int newHighest = FindHighestCoveredSlide(result.MarkdownContent);
+                if (newHighest <= lastCoveredSlide)
+                {
+                    break;
+                }
+                lastCoveredSlide = newHighest;
+            }
+        }
 
         progress?.Report(new ProgressUpdate("Notes generated successfully!", 95));
         return result;
@@ -160,7 +225,7 @@ public class NoteGeneratorService
 
     // ── Prompt building ───────────────────────────────────────────────
 
-    private static string BuildSystemPrompt(GenerationSettings settings)
+    private static string BuildSystemPrompt(GenerationSettings settings, int totalSlides)
     {
         var sb = new StringBuilder();
         sb.AppendLine("You are a university professor generating comprehensive lecture notes for a student.");
@@ -174,6 +239,7 @@ public class NoteGeneratorService
 
         sb.AppendLine("- Student: University student");
         sb.AppendLine($"- Mode: {settings.Mode.DisplayName()}");
+        sb.AppendLine($"- Total Slides in Deck: {totalSlides}");
         sb.AppendLine();
 
         // Language instruction
@@ -187,15 +253,43 @@ public class NoteGeneratorService
         AppendSlideProcessingContext(sb, settings.SlideProcessing);
 
         sb.AppendLine("YOUR TASK:");
-        sb.AppendLine("For EACH slide in the lecture presentation:");
+        sb.AppendLine($"For EACH slide in the lecture presentation (from Slide 1 through the final Slide {totalSlides}):");
         sb.AppendLine("1. Write a heading with the slide number and title: '## Slide X — Title'");
         sb.AppendLine("2. Include the slide image reference (I will tell you the syntax below)");
         sb.AppendLine("3. Provide the explanation based on the mode (detailed for missed, concise for attended)");
         sb.AppendLine("4. If reference book content was provided, integrate relevant book knowledge into your explanation");
-        sb.AppendLine("5. DO NOT skip any slides — cover every single one");
+        sb.AppendLine($"5. DO NOT skip any slides — cover every single one from Slide 1 to Slide {totalSlides} (unless marked as SKIPPED)");
+        sb.AppendLine();
+
+        sb.AppendLine("CRITICAL COMPLETENESS REQUIREMENT:");
+        sb.AppendLine($"- There are exactly {totalSlides} slides in this presentation.");
+        sb.AppendLine($"- You MUST write an explanation section for EVERY SINGLE SLIDE from Slide 1 all the way to Slide {totalSlides}.");
+        sb.AppendLine($"- DO NOT stop early under any circumstances. You must reach '## Slide {totalSlides}' before writing the summary table.");
+        sb.AppendLine($"- The final slide section in your notes MUST be Slide {totalSlides}.");
+        sb.AppendLine($"- Writing the Key Concepts Summary table before covering all {totalSlides} slides is strictly forbidden.");
         sb.AppendLine();
 
         AppendFormatInstructions(sb, settings.Format);
+
+        sb.AppendLine();
+        sb.AppendLine("VISUAL ELEMENTS (Diagrams, Figures, Charts):");
+        sb.AppendLine("- Do NOT recreate or reproduce diagrams using ASCII art, box-drawing characters, or terminal-style text graphics");
+        sb.AppendLine("- The student has the slides open alongside these notes and can already see all figures");
+        sb.AppendLine("- Instead, REFERENCE the figure on the slide: 'As shown in the diagram on Slide X...'");
+        sb.AppendLine("- Focus on explaining WHAT the diagram shows conceptually and WHY it matters");
+        sb.AppendLine("- Explain the relationships, flows, and key takeaways from the visual — not its visual structure");
+        sb.AppendLine("- Only describe specific data points, labels, or values if they are important for understanding");
+
+        // Slide skipping instructions
+        if (settings.SkippedSlides.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("SKIPPED SLIDES:");
+            sb.AppendLine("- Some slides are marked as SKIPPED by the student");
+            sb.AppendLine("- For SKIPPED slides: include the slide heading (## Slide X — [Topic]) but write ONLY 'Skipped' underneath");
+            sb.AppendLine("- Do NOT provide any explanation for skipped slides");
+            sb.AppendLine("- Still use skipped slide content for context when explaining other slides");
+        }
 
         sb.AppendLine();
         sb.AppendLine("START with a title header (# heading) and a brief overview section.");
@@ -274,8 +368,18 @@ public class NoteGeneratorService
         sb.AppendLine();
         for (int i = 0; i < slideTexts.Count; i++)
         {
-            sb.AppendLine($"--- SLIDE {i + 1} ---");
-            sb.AppendLine(slideTexts[i].Trim());
+            var slideNum = i + 1;
+            if (settings.SkippedSlides.Contains(slideNum))
+            {
+                sb.AppendLine($"--- SLIDE {slideNum} [SKIPPED] ---");
+                sb.AppendLine(slideTexts[i].Trim());
+                sb.AppendLine("[NOTE: This slide is SKIPPED — include heading but write only 'Skipped' in the output]");
+            }
+            else
+            {
+                sb.AppendLine($"--- SLIDE {slideNum} ---");
+                sb.AppendLine(slideTexts[i].Trim());
+            }
             sb.AppendLine();
         }
 
@@ -323,5 +427,92 @@ public class NoteGeneratorService
             if (int.TryParse(match.Groups[1].Value, out int s)) startPage = s;
             if (int.TryParse(match.Groups[2].Value, out int e)) endPage = e;
         }
+    }
+
+    /// <summary>
+    /// Finds the highest slide number that was covered in the generated markdown.
+    /// Looks for patterns like "## Slide 31", "### Slide 31", or "Slide 31".
+    /// </summary>
+    private static int FindHighestCoveredSlide(string markdown)
+    {
+        var matches = Regex.Matches(markdown, @"(?:##\s*Slide|###\s*Slide|\bSlide)\s*(\d+)", RegexOptions.IgnoreCase);
+        int max = 0;
+        foreach (Match m in matches)
+        {
+            if (int.TryParse(m.Groups[1].Value, out int num))
+            {
+                if (num > max && num <= 500) // Filter out years like 2024
+                    max = num;
+            }
+        }
+        return max;
+    }
+
+    /// <summary>
+    /// Strips any premature summary table generated when the model stopped early,
+    /// so the continuation slides can be cleanly appended before the final summary.
+    /// </summary>
+    private static string StripPrematureSummaryTable(string markdown)
+    {
+        var tableMarker = "| Concept |";
+        var lastTable = markdown.LastIndexOf(tableMarker, StringComparison.OrdinalIgnoreCase);
+        if (lastTable > 0 && lastTable > markdown.Length - 4000)
+        {
+            var headerMarkers = new[] { "## Key Concepts", "# Key Concepts", "## Summary", "# Summary" };
+            foreach (var marker in headerMarkers)
+            {
+                var hIdx = markdown.LastIndexOf(marker, lastTable, StringComparison.OrdinalIgnoreCase);
+                if (hIdx > 0 && hIdx > markdown.Length - 5000)
+                {
+                    return markdown.Substring(0, hIdx).TrimEnd();
+                }
+            }
+            return markdown.Substring(0, lastTable).TrimEnd();
+        }
+        return markdown.TrimEnd();
+    }
+
+    /// <summary>
+    /// Builds user content containing only the remaining slides for continuation.
+    /// </summary>
+    private static string BuildContinuationUserContent(List<string> slideTexts,
+        Dictionary<string, List<string>> bookTexts, GenerationSettings settings, int startSlideNumber)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"=== REMAINING LECTURE SLIDES (Slides {startSlideNumber} to {slideTexts.Count}) ===");
+        sb.AppendLine($"Total slides in deck: {slideTexts.Count}");
+        sb.AppendLine();
+
+        for (int i = startSlideNumber - 1; i < slideTexts.Count; i++)
+        {
+            var slideNum = i + 1;
+            if (settings.SkippedSlides.Contains(slideNum))
+            {
+                sb.AppendLine($"--- SLIDE {slideNum} [SKIPPED] ---");
+                sb.AppendLine(slideTexts[i].Trim());
+                sb.AppendLine("[NOTE: This slide is SKIPPED — include heading but write only 'Skipped' in the output]");
+            }
+            else
+            {
+                sb.AppendLine($"--- SLIDE {slideNum} ---");
+                sb.AppendLine(slideTexts[i].Trim());
+            }
+            sb.AppendLine();
+        }
+
+        if (bookTexts.Count > 0)
+        {
+            sb.AppendLine("=== REFERENCE BOOK CONTENT (for context) ===");
+            foreach (var (fileName, pages) in bookTexts)
+            {
+                sb.AppendLine($"\n--- BOOK: {fileName} ---");
+                for (int i = 0; i < pages.Count; i++)
+                {
+                    sb.AppendLine($"[Page {i + 1}] {pages[i].Trim()}");
+                }
+            }
+        }
+
+        return sb.ToString();
     }
 }

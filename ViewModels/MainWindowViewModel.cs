@@ -74,6 +74,18 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _weeklyTokensDisplay = "0";
     [ObservableProperty] private string _monthlyTokensDisplay = "0";
 
+    // === Follow-up Q&A session ===
+    [ObservableProperty] private bool _isFollowUpSessionActive;
+    [ObservableProperty] private string _followUpInput = string.Empty;
+    [ObservableProperty] private bool _isSendingFollowUp;
+    public ObservableCollection<ChatMessage> ChatMessages { get; } = [];
+
+    // === Slide skipping ===
+    [ObservableProperty] private bool _showSkipSlidesPopup;
+    [ObservableProperty] private string _skippedSlidesDisplayText = string.Empty;
+    public ObservableCollection<SkippedSlideInfo> SlidesThumbnails { get; } = [];
+    private readonly HashSet<int> _skippedSlideNumbers = [];
+
     public bool HasLivePreview => !string.IsNullOrEmpty(LivePreview);
 
     public bool CanGenerate => SlidesFile != null && IsApiKeyValid && !IsGenerating && !string.IsNullOrWhiteSpace(OutputPath);
@@ -240,28 +252,186 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasLivePreview));
     }
 
+    // === Follow-up Q&A Commands ===
+
     [RelayCommand]
-    private async Task CopyToClipboard()
+    private void StartFollowUpSession()
     {
-        if (string.IsNullOrEmpty(LivePreview)) return;
+        if (string.IsNullOrEmpty(LivePreview) || !_geminiService.IsConfigured) return;
+
+        var systemPrompt = "You are a helpful study assistant. The student has just generated lecture notes using an AI tool. " +
+                           "They want to ask follow-up questions about the lecture content. " +
+                           "Answer concisely and clearly, referencing the notes when relevant. " +
+                           "If the student asks about something not covered in the notes, say so and provide what you can.";
+
+        _geminiService.StartChatSession(systemPrompt, LivePreview);
+        IsFollowUpSessionActive = true;
+        ChatMessages.Clear();
+        ChatMessages.Add(new ChatMessage("I've reviewed your lecture notes. Ask me anything about the material!", false));
+    }
+
+    [RelayCommand]
+    private void EndFollowUpSession()
+    {
+        _geminiService.EndChatSession();
+        IsFollowUpSessionActive = false;
+        ChatMessages.Clear();
+        FollowUpInput = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task SendFollowUp()
+    {
+        if (string.IsNullOrWhiteSpace(FollowUpInput) || IsSendingFollowUp || !_geminiService.HasActiveChat) return;
+
+        var userMessage = FollowUpInput.Trim();
+        FollowUpInput = string.Empty;
+        ChatMessages.Add(new ChatMessage(userMessage, true));
+        IsSendingFollowUp = true;
+
         try
         {
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            var responseBuilder = new StringBuilder();
+            var aiMessage = new ChatMessage("", false);
+            ChatMessages.Add(aiMessage);
+
+            var streamProgress = new Progress<string>(chunk =>
             {
-                var topLevel = Avalonia.Controls.TopLevel.GetTopLevel(desktop.MainWindow);
-                if (topLevel?.Clipboard != null)
-                {
-                    await topLevel.Clipboard.SetTextAsync(LivePreview);
-                    StatusMessage = "✓ Copied markdown to clipboard!";
-                    IsStatusError = false;
-                }
+                responseBuilder.Append(chunk);
+            });
+
+            var response = await _geminiService.SendChatMessageAsync(userMessage, streamProgress);
+
+            // Replace the placeholder message with the full response
+            var index = ChatMessages.IndexOf(aiMessage);
+            if (index >= 0)
+            {
+                ChatMessages[index] = new ChatMessage(response, false);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            StatusMessage = "Failed to copy to clipboard.";
+            ChatMessages.Add(new ChatMessage($"Error: {ex.Message}", false));
+        }
+        finally
+        {
+            IsSendingFollowUp = false;
         }
     }
+
+    // === Slide Skipping Commands ===
+
+    /// <summary>
+    /// Directory containing extracted slide images (cached for reuse by Vision AI).
+    /// </summary>
+    private string? _cachedSlideImagesDir;
+    private List<string>? _cachedSlideImagePaths;
+
+    [RelayCommand]
+    private async Task OpenSkipSlidesPopup()
+    {
+        if (SlidesFile == null) return;
+
+        try
+        {
+            StatusMessage = "Loading slide images...";
+            IsStatusError = false;
+
+            // Use a stable cache directory keyed to the PDF filename so images persist
+            // and can be reused directly when Vision AI is selected during generation
+            var pdfHash = Path.GetFileNameWithoutExtension(SlidesFile.FilePath).GetHashCode().ToString("X8");
+            var cacheDir = Path.Combine(Path.GetTempPath(), "LectureSmith", $"slides_{pdfHash}");
+
+            List<string> imagePaths;
+
+            // Reuse cached slide images if they exist on disk
+            if (Directory.Exists(cacheDir))
+            {
+                var existing = Directory.GetFiles(cacheDir, "slide_*.png").OrderBy(f => f).ToList();
+                if (existing.Count > 0)
+                {
+                    imagePaths = existing;
+                }
+                else
+                {
+                    imagePaths = await _pdfExtractorService.ExtractSlideImagesAsync(SlidesFile.FilePath, cacheDir);
+                }
+            }
+            else
+            {
+                // Extract full slide photos to the cache directory
+                imagePaths = await _pdfExtractorService.ExtractSlideImagesAsync(SlidesFile.FilePath, cacheDir);
+            }
+
+            _cachedSlideImagesDir = cacheDir;
+            _cachedSlideImagePaths = imagePaths;
+
+            if (imagePaths.Count == 0)
+            {
+                StatusMessage = "✗ Could not extract any slide images from this PDF.";
+                IsStatusError = true;
+                return;
+            }
+
+            // Populate the popup on the UI thread
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                SlidesThumbnails.Clear();
+                for (int i = 0; i < imagePaths.Count; i++)
+                {
+                    var info = new SkippedSlideInfo(i + 1, imagePaths[i])
+                    {
+                        IsSkipped = _skippedSlideNumbers.Contains(i + 1)
+                    };
+                    SlidesThumbnails.Add(info);
+                }
+
+                ShowSkipSlidesPopup = true;
+                StatusMessage = string.Empty;
+            });
+        }
+        catch (Exception ex)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                StatusMessage = $"✗ Failed to load slide images: {ex.Message}";
+                IsStatusError = true;
+            });
+        }
+    }
+
+    [RelayCommand]
+    public void ToggleSlideSkip(SkippedSlideInfo slide)
+    {
+        slide.IsSkipped = !slide.IsSkipped;
+        if (slide.IsSkipped)
+            _skippedSlideNumbers.Add(slide.SlideNumber);
+        else
+            _skippedSlideNumbers.Remove(slide.SlideNumber);
+
+        UpdateSkippedSlidesDisplay();
+    }
+
+    [RelayCommand]
+    private void CloseSkipSlidesPopup()
+    {
+        ShowSkipSlidesPopup = false;
+        UpdateSkippedSlidesDisplay();
+    }
+
+    private void UpdateSkippedSlidesDisplay()
+    {
+        if (_skippedSlideNumbers.Count == 0)
+        {
+            SkippedSlidesDisplayText = string.Empty;
+        }
+        else
+        {
+            var sorted = _skippedSlideNumbers.OrderBy(n => n).ToList();
+            SkippedSlidesDisplayText = $"Slides {string.Join(", ", sorted)} will be skipped";
+        }
+    }
+
     partial void OnIsApiKeyValidChanged(bool value) => OnPropertyChanged(nameof(CanGenerate));
     partial void OnIsGeneratingChanged(bool value) => OnPropertyChanged(nameof(CanGenerate));
     partial void OnOutputPathChanged(string value) => OnPropertyChanged(nameof(CanGenerate));
@@ -427,7 +597,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 OutputPath = OutputPath,
                 SelectedModelId = SelectedModel?.Id ?? "",
                 SlidesFile = SlidesFile,
-                BookFiles = [.. BookFiles]
+                BookFiles = [.. BookFiles],
+                SkippedSlides = [.. _skippedSlideNumbers]
             };
 
             // Save user preferences

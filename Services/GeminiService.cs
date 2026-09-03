@@ -16,6 +16,7 @@ public class GeminiService
     private string _apiKey = string.Empty;
     private GenerativeModel? _model;
     private IGenerativeAI? _googleAi;
+    private ChatSession? _chatSession;
 
     /// <summary>
     /// Available text-generation models the user can choose from.
@@ -33,6 +34,7 @@ public class GeminiService
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);
+    public bool HasActiveChat => _chatSession != null;
 
     public void SetApiKey(string apiKey)
     {
@@ -105,6 +107,45 @@ public class GeminiService
             var response = _model!.GenerateContentStream(request);
             return await StreamResponseAsync(response, progress, ct);
         });
+    }
+
+    /// <summary>
+    /// Starts a chat session primed with the generated notes as context.
+    /// Uses Gemini's ChatSession which maintains conversation history server-side.
+    /// </summary>
+    public void StartChatSession(string systemPrompt, string initialContext)
+    {
+        EnsureModelConfigured();
+
+        _chatSession = _model!.StartChat(history:
+        [
+            new ContentResponse($"{systemPrompt}\n\nHere are the lecture notes I just generated:\n\n{initialContext}", "user"),
+            new ContentResponse("I've reviewed the lecture notes. I'm ready to answer any follow-up questions you have about this material. What would you like to know?", "model")
+        ]);
+    }
+
+    /// <summary>
+    /// Sends a follow-up message in the active chat session and streams the response.
+    /// </summary>
+    public async Task<string> SendChatMessageAsync(string message,
+        IProgress<string>? progress = null, CancellationToken ct = default)
+    {
+        if (_chatSession == null)
+            throw new InvalidOperationException("No active chat session. Call StartChatSession first.");
+
+        return await ExecuteWithRetryAsync(async () =>
+        {
+            var response = _chatSession.SendMessageStream(message, cancellationToken: ct);
+            return await StreamResponseAsync(response, progress, ct);
+        });
+    }
+
+    /// <summary>
+    /// Ends the current chat session.
+    /// </summary>
+    public void EndChatSession()
+    {
+        _chatSession = null;
     }
 
     private static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action, int maxRetries = 3)

@@ -2,116 +2,189 @@
 
 [![Language](https://img.shields.io/badge/Language-C%23-blue.svg)](https://dotnet.microsoft.com/en-us/languages/csharp)
 [![Framework](https://img.shields.io/badge/Framework-.NET%209.0-purple.svg)](https://dotnet.microsoft.com/download)
-[![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI-orange.svg)](https://avaloniaui.net/)
+[![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI%2011.3-orange.svg)](https://avaloniaui.net/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue.svg)](#)
+[![Version](https://img.shields.io/badge/Version-v2.5.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**LectureSmith** is a high-performance, modern desktop application designed for students and educators. It automatically generates comprehensive study notes from lecture slides (PDFs) by integrating with **Google AI Studio (Gemini API)**. 
+**LectureSmith** is a modern, high-performance desktop application designed for students and educators. It turns lecture slides (PDFs) and reference textbooks into comprehensive, beautifully structured study notes using **Google AI Studio (Gemini API)**.
 
-Students can upload their slides, optionally attach relevant textbook chapters to enrich the notes, select target courses, and choose output formats (Obsidian, HTML, PDF).
+Students can upload their lecture slides, optionally attach relevant textbook chapters to enrich the notes, select target courses, and export directly to **Obsidian Markdown**, **self-contained HTML**, or **printable PDF**.
 
 ---
 
-## 🌟 Key Features
+## 🌟 What's New in v2.5.0
 
-* **Multi-Modal Slide Processing**: Extract raw text, run native OCR scans (to capture text inside code screenshots/diagrams), or send slide images directly via Vision AI to capture visual layouts.
-* **Textbook Context Integration**: Upload reference textbook PDFs and specify chapters/page ranges (e.g. `Ch 10, p305-340`) to merge textbook details directly into the generated notes.
-* **Modern Desktop Interface**: Polished, dark-themed UI matching premium applications. Features smooth drag-and-drop file ingestion, dynamic validation status colors, and responsive progress tracking.
-* **Advanced Gemini AI Integration**: Supports multiple model endpoints (Gemini 3.5 Flash, Gemini 3.5 Pro) with toggleable AI thinking/reasoning modes for complex subjects.
-* **Clean Exporters**: Output beautiful Obsidian-compatible Markdown, self-contained HTML (with embedded base64 images), or clean, printable PDFs.
-* **Secure API Key Management**: Never hardcoded. Keys are saved securely in the local user's AppData directory (`%APPDATA%/LectureSmith/settings.json`) or loaded automatically from environment variables (`GEMINI_API_KEY` or `GOOGLE_API_KEY`).
+* 💬 **Interactive Follow-up Q&A Chat Session:**
+  * After notes are generated, launch an integrated chat session directly inside the app.
+  * Uses Gemini's `ChatSession` API — conversation context is maintained server-side without resending the entire notes on each message.
+  * **Rich Markdown Rendering:** AI answers render formatted Markdown (bold, headings, bullet lists, code chips).
+  * **Resizable Split View:** A draggable resizer bar (`GridSplitter`) allows you to resize between the reference notes and the chat window freely.
+  * **Auto-Scrolling:** Chat automatically follows the conversation as messages stream in.
+* 📋 **Visual Slide Skipping & Zero-Waste Caching:**
+  * Open a visual slide gallery showing **actual full-resolution slide photos**.
+  * Click any slide to mark it as **SKIPPED** with an instant visual overlay.
+  * Skipped slides still supply lecture context to the AI, but appear only as heading + `"Skipped"` in your notes.
+  * **Smart Caching:** Extracted slide images are stored in `%TEMP%\LectureSmith\slides_{hash}\` and reused directly for Vision AI processing with zero duplicate extractions.
+* 🔄 **Auto-Continuation Engine for Complete Slide Decks:**
+  * Solves the common LLM issue of stopping early on long decks (40+ slides).
+  * LectureSmith tracks coverage and automatically issues continuation requests starting from where the model stopped, ensuring **100% of slides are covered** every time.
+* 📊 **Smart Diagram & Figure Referencing:**
+  * System prompt instructs Gemini to conceptually explain figures and reference them directly on the slide (`"As shown in the diagram on Slide X..."`) instead of attempting awkward ASCII or terminal-style text art.
+
+---
+
+## 🚀 Key Features
+
+### 📝 Smart Note Generation
+* **Two Study Modes:**
+  * **Missed Lecture (Detailed):** Comprehensive, professor-style explanations for students who missed the lecture entirely.
+  * **Attended Lecture (Concise):** Focused review notes for students who attended and want clean, organized revision notes.
+
+### 🎯 Multi-Modal Input & Textbook Context
+* **Slide Extraction Modes:** Extract raw text, run native OCR scans (Tesseract), or send full slide images directly via Vision AI.
+* **Textbook Integration:** Attach reference textbook PDFs with chapter and page ranges (e.g. `Ch 10, p305-340`) for deeper academic explanations.
+* **Slide Skipping:** Skip administrative, syllabus, or irrelevant slides with a single click.
+
+### 🌍 Multi-Language Support
+* Auto-detect lecture slide language.
+* Target output in **English** or **Danish**.
+
+### 📄 Export Formats
+* **Obsidian Notes (.md):** Includes slide image embeds (`![[slides/slide_XX.png]]`), callouts (`> [!tip]`), and tables.
+* **Self-Contained HTML (.html):** Standalone file with embedded base64 images, styled typography, and dark mode support.
+* **Printable PDF (.pdf):** Clean, publication-quality document layout via QuestPDF.
+
+### 🤖 AI Model Discovery & Management
+* Dynamic model discovery querying Google AI API in real time.
+* Free-tier indicators (`Gemini Flash / Lite`) vs. paid model indicators (`Pro / Max`).
+* Optional AI reasoning/thinking mode for complex STEM subjects.
+* Weekly and monthly token usage tracking.
 
 ---
 
 ## 🛠 Tech Stack
 
-* **Language**: C# / .NET 9.0
-* **Desktop UI**: Avalonia UI (using MVVM with CommunityToolkit.Mvvm)
-* **PDF Extraction**: Docnet.Core
-* **OCR Scanner**: Tesseract OCR
-* **Markdown Processor**: Markdig
-* **PDF Document Builder**: QuestPDF
-* **Graphics Library**: SkiaSharp (bundled with Avalonia)
-* **API Wrapper**: Mscc.GenerativeAI
+| Component | Technology |
+|---|---|
+| **Runtime & Language** | C# / .NET 9.0 |
+| **Desktop UI** | Avalonia UI 11.3 (MVVM with CommunityToolkit.Mvvm) |
+| **PDF Extraction** | Docnet.Core |
+| **OCR Scanner** | Tesseract OCR 5.2 |
+| **Markdown Processor** | Markdig + Markdown.Avalonia |
+| **PDF Generation** | QuestPDF |
+| **Graphics Library** | SkiaSharp |
+| **AI Integration** | Mscc.GenerativeAI (Google Gemini API) |
 
 ---
 
-## 📐 Architecture & Flow
+## 📐 Architecture & Pipeline
 
 ```mermaid
 graph TD
     A[Slides PDF] --> B[PdfExtractorService]
     A2[Reference Book PDF] --> B
-    
+
     subgraph Extraction Pipeline
         B -->|Extract Text| C[Docnet]
-        B -->|Extract BGRA Pixels| D[SkiaSharp]
-        D -->|Saved Temp Images| E[OcrService / Tesseract]
+        B -->|Extract High-Res Frames| D[SkiaSharp]
+        D -->|Cached Slide Images| E[OcrService / Vision AI]
     end
-    
+
     C --> F[NoteGeneratorService]
-    E -->|OCR Text| F
-    
-    F -->|Construct Prompt| G[GeminiService]
-    G -->|Gemini API Stream| H[Streamed Live Preview]
-    
-    H -->|Complete Text| I[OutputExporterService]
+    E --> F
+
+    F -->|Construct Prompt + Auto-Continuation| G[GeminiService]
+    G -->|Gemini Stream| H[Live Markdown Preview]
+
+    H -->|Complete Notes| I[OutputExporterService]
     I -->|Export Markdown| J[Obsidian .md]
-    I -->|Embed Base64 Images| K[Self-Contained HTML]
+    I -->|Embed Base64| K[Self-Contained HTML]
     I -->|QuestPDF Flow| L[Printable PDF]
+
+    H -->|Start Q&A| M[Follow-up Session]
+    M -->|Gemini ChatSession| G
 ```
 
 ---
 
-## 🚀 How to Download and Run
+## 📁 Project Structure
 
-### 1. Download the Executable
-Download the pre-compiled, self-contained executable from the [GitHub Releases](https://github.com/your-username/LectureSmith/releases) page.
-
-### 2. Enter API Key
-1. Obtain a free API key from [Google AI Studio](https://aistudio.google.com/).
-2. Run the application, click the **Settings (⚙)** icon, paste your key, and click **Save**.
-3. *Alternative:* Set a system environment variable named `GEMINI_API_KEY` or `GOOGLE_API_KEY` and the app will load it automatically on startup.
-
-### 3. Generate Notes
-1. Drag and drop your lecture slides PDF onto the **Lecture Slides** zone.
-2. Select your course, target mode, and preferred output format.
-3. Browse and select a **Save Location** directory.
-4. Click **⚡ Generate Notes**.
+```
+LectureSmith/
+├── Models/              # Data models, enums, and DTOs
+│   ├── AppSettings.cs
+│   ├── ChatMessage.cs
+│   ├── GeminiModelInfo.cs
+│   ├── GenerationResult.cs
+│   ├── GenerationSettings.cs
+│   ├── LectureMode.cs
+│   ├── NoteLanguage.cs
+│   ├── OutputFormat.cs
+│   ├── ProgressUpdate.cs
+│   ├── SkippedSlideInfo.cs
+│   ├── SlideProcessingMode.cs
+│   └── UploadedFile.cs
+├── Services/            # Business logic and external APIs
+│   ├── GeminiService.cs
+│   ├── NoteGeneratorService.cs
+│   ├── OcrService.cs
+│   ├── OutputExporterService.cs
+│   ├── PdfExtractorService.cs
+│   ├── SettingsService.cs
+│   └── TempFileCleanupService.cs
+├── ViewModels/          # MVVM ViewModels
+│   ├── MainWindowViewModel.cs
+│   └── ViewModelBase.cs
+├── Views/               # Avalonia XAML views
+│   ├── MainWindow.axaml
+│   └── MainWindow.axaml.cs
+├── Converters/          # Value converters
+│   └── EnumDisplayNameConverter.cs
+└── Assets/              # Icons and styling resources
+    └── app-icon.ico
+```
 
 ---
 
-## 💻 Developer Setup
+## 🚀 Download & Installation
 
-If you want to compile and modify the application locally, follow these steps:
+### Option 1: Standalone Release (Recommended)
+Download the pre-compiled, self-contained single-file executable from the [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases) page.
+* No .NET runtime installation required.
+* Double-click `LectureSmith.exe` and start taking notes.
 
-### Prerequisites
-* [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-* IDE of your choice (Visual Studio 2022, JetBrains Rider, or VS Code)
-
-### Building the Project
-1. Clone this repository:
+### Option 2: Build from Source
+1. Ensure [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) is installed.
+2. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/LectureSmith.git
+   git clone https://github.com/YaserBaker7/LectureSmith.git
    cd LectureSmith
    ```
-2. Restore NuGet dependencies:
+3. Restore dependencies & run:
    ```bash
    dotnet restore
-   ```
-3. Run the application in debug mode:
-   ```bash
    dotnet run
    ```
 
-### Packaging a New Standalone Release (.exe)
-To package the app into a single self-contained executable for Windows x64:
+### Publishing a Standalone Release (.exe)
 ```powershell
 dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
-The output executable will be compiled to `bin/Release/net9.0/win-x64/publish/LectureSmith.exe`.
+The output executable is compiled to `bin/Release/net9.0/win-x64/publish/LectureSmith.exe`.
+
+---
+
+## ⚙️ Setup & Configuration
+
+1. **Google AI Studio API Key:**
+   * Get a free API key from [Google AI Studio](https://aistudio.google.com/).
+   * Click the **Settings (⚙)** icon in LectureSmith, paste your key, and click **Save & Validate**.
+   * *Alternative:* Set an environment variable `GEMINI_API_KEY` or `GOOGLE_API_KEY`.
+2. **Settings Persistence:**
+   * Application settings are securely saved to `%APPDATA%\LectureSmith\settings.json`.
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

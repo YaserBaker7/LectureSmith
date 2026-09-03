@@ -12,6 +12,7 @@ public class GenerationSettings
     public SlideProcessingMode SlideProcessing { get; set; } = SlideProcessingMode.TextOnly;
     public UploadedFile? SlidesFile { get; set; }
     public List<UploadedFile> BookFiles { get; set; } = [];
+    public HashSet<int> SkippedSlides { get; set; } = [];
 
     /// <summary>
     /// Returns the effective course name.
