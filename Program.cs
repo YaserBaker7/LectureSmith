@@ -16,15 +16,23 @@ sealed class Program
         // Catch ALL unhandled exceptions including native crashes
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
-            var ex = e.ExceptionObject as Exception;
-            File.AppendAllText(CrashLogPath,
-                $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] UNHANDLED EXCEPTION (IsTerminating={e.IsTerminating}):\n{ex}\n");
+            try
+            {
+                var ex = e.ExceptionObject as Exception;
+                File.AppendAllText(CrashLogPath,
+                    $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] UNHANDLED EXCEPTION (IsTerminating={e.IsTerminating}):\n{ex}\n");
+            }
+            catch { }
         };
 
         TaskScheduler.UnobservedTaskException += (s, e) =>
         {
-            File.AppendAllText(CrashLogPath,
-                $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] UNOBSERVED TASK EXCEPTION:\n{e.Exception}\n");
+            try
+            {
+                File.AppendAllText(CrashLogPath,
+                    $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] UNOBSERVED TASK EXCEPTION:\n{e.Exception}\n");
+            }
+            catch { }
             e.SetObserved();
         };
 
@@ -34,8 +42,12 @@ sealed class Program
         }
         catch (Exception ex)
         {
-            File.AppendAllText(CrashLogPath,
-                $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MAIN CATCH:\n{ex}\n");
+            try
+            {
+                File.AppendAllText(CrashLogPath,
+                    $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MAIN CATCH:\n{ex}\n");
+            }
+            catch { }
             throw;
         }
     }

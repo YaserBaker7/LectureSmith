@@ -339,21 +339,22 @@ public class NoteGeneratorService
                 sb.AppendLine("- Use Obsidian image syntax: ![[slides/slide_XX.png]]");
                 sb.AppendLine("- Use standard markdown headers, lists, tables, blockquotes");
                 sb.AppendLine("- Use callouts like '> [!tip]' for tips and '> [!important]' for key points");
+                sb.AppendLine("- For mathematical formulas, use standard LaTeX syntax: $...$ for inline math and $$...$$ for display equations");
                 break;
             case OutputFormat.HTML:
                 sb.AppendLine("OUTPUT FORMAT: Clean Markdown (will be converted to HTML)");
                 sb.AppendLine("- Use standard markdown image syntax: ![Slide X](slides/slide_XX.png)");
-                sb.AppendLine("- Use standard markdown formatting");
+                sb.AppendLine("- Use standard markdown formatting (headers, bold, italic, lists, tables)");
+                sb.AppendLine("- For mathematical formulas, use standard LaTeX syntax: $...$ for inline math and $$...$$ for display equations");
                 break;
             case OutputFormat.PDF:
-                sb.AppendLine("OUTPUT FORMAT: Plain text for PDF rendering");
+                sb.AppendLine("OUTPUT FORMAT: Clean Markdown for PDF rendering");
                 sb.AppendLine("- Use standard markdown image syntax for slide references: ![Slide X](slides/slide_XX.png)");
-                sb.AppendLine("- Use markdown headers (# ## ###) for section titles — these WILL be rendered correctly");
+                sb.AppendLine("- Use markdown headers (# ## ###) for section titles");
                 sb.AppendLine("- Use bullet points (- or •) for lists");
                 sb.AppendLine("- Use > for blockquotes");
-                sb.AppendLine("- Do NOT use **bold**, *italic*, or `code` inline markup — the PDF renderer does not support inline markdown and it will show raw asterisks in the output");
-                sb.AppendLine("- Instead of bold, just write the text normally — do not wrap words in asterisks");
-                sb.AppendLine("- Write clearly and legibly without relying on bold or italic emphasis");
+                sb.AppendLine("- Use **bold**, *italic*, and `code` formatting where appropriate");
+                sb.AppendLine("- For mathematical formulas, use standard LaTeX syntax: $...$ for inline math and $$...$$ for display equations");
                 break;
         }
     }

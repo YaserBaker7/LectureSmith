@@ -3,8 +3,6 @@ using Mscc.GenerativeAI;
 using System.Net.Http;
 using System.Text;
 
-using System.Text.RegularExpressions;
-
 namespace LectureSmith.Services;
 
 public class GeminiService
@@ -157,6 +155,10 @@ public class GeminiService
             try
             {
                 return await action();
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex) when (attempt <= maxRetries && (ex.Message.Contains("429") || ex.Message.Contains("Quota") || ex.Message.Contains("503") || ex.Message.Contains("500")))
             {

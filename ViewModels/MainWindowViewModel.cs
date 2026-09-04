@@ -321,12 +321,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // === Slide Skipping Commands ===
 
-    /// <summary>
-    /// Directory containing extracted slide images (cached for reuse by Vision AI).
-    /// </summary>
-    private string? _cachedSlideImagesDir;
-    private List<string>? _cachedSlideImagePaths;
-
     [RelayCommand]
     private async Task OpenSkipSlidesPopup()
     {
@@ -363,9 +357,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 imagePaths = await _pdfExtractorService.ExtractSlideImagesAsync(SlidesFile.FilePath, cacheDir);
             }
 
-            _cachedSlideImagesDir = cacheDir;
-            _cachedSlideImagePaths = imagePaths;
-
             if (imagePaths.Count == 0)
             {
                 StatusMessage = "✗ Could not extract any slide images from this PDF.";
@@ -376,6 +367,10 @@ public partial class MainWindowViewModel : ViewModelBase
             // Populate the popup on the UI thread
             await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
+                foreach (var item in SlidesThumbnails)
+                {
+                    item.Dispose();
+                }
                 SlidesThumbnails.Clear();
                 for (int i = 0; i < imagePaths.Count; i++)
                 {
@@ -439,7 +434,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task EstimateTokensAsync()
     {
-        if (SlidesFile == null)
+        var currentFile = SlidesFile;
+        if (currentFile == null)
         {
             EstimatedTokenInfo = string.Empty;
             return;
@@ -448,14 +444,16 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             EstimatedTokenInfo = "Estimating tokens...";
-            var texts = await _pdfExtractorService.ExtractTextAsync(SlidesFile.FilePath);
+            var texts = await _pdfExtractorService.ExtractTextAsync(currentFile.FilePath);
+            if (SlidesFile != currentFile) return; // Discard stale estimate if file changed
             var totalChars = texts.Sum(t => t.Length);
             var estimatedTokens = totalChars / 4 + 1500; // ~4 chars/token + system prompt overhead
             EstimatedTokenInfo = $"📊 ~{estimatedTokens:N0} input tokens  •  {texts.Count} slides";
         }
         catch
         {
-            EstimatedTokenInfo = string.Empty;
+            if (SlidesFile == currentFile)
+                EstimatedTokenInfo = string.Empty;
         }
     }
 
@@ -515,6 +513,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private void RemoveSlides()
     {
         SlidesFile = null;
+        _skippedSlideNumbers.Clear();
+        UpdateSkippedSlidesDisplay();
+        foreach (var item in SlidesThumbnails)
+        {
+            item.Dispose();
+        }
+        SlidesThumbnails.Clear();
     }
 
     [RelayCommand]
@@ -623,10 +628,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
             result = await _noteGeneratorService.GenerateAsync(settings, progress, liveTextProgress, _cts.Token);
 
+            if (!string.IsNullOrEmpty(result?.MarkdownContent))
+            {
+                LivePreview = result.MarkdownContent;
+            }
+
             ProgressMessage = "Exporting notes...";
             ProgressPercent = 95;
 
-            var outputFile = await _outputExporterService.ExportAsync(result, settings);
+            var outputFile = await _outputExporterService.ExportAsync(result!, settings);
 
             // Record token usage
             var outputTokens = (result?.MarkdownContent?.Length ?? 0) / 4;

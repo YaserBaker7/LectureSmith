@@ -90,13 +90,21 @@ public class PdfExtractorService
     }
 
     /// <summary>
-    /// Synchronous page count (kept for backward compatibility).
+    /// Synchronous page count (thread-safe Docnet access).
     /// </summary>
     public int GetPageCount(string pdfPath)
     {
-        using var library = DocLib.Instance;
-        using var docReader = library.GetDocReader(pdfPath, DefaultPageDimensions);
-        return docReader.GetPageCount();
+        _docnetLock.Wait();
+        try
+        {
+            using var library = DocLib.Instance;
+            using var docReader = library.GetDocReader(pdfPath, DefaultPageDimensions);
+            return docReader.GetPageCount();
+        }
+        finally
+        {
+            _docnetLock.Release();
+        }
     }
 
     private async Task<List<string>> ExtractImagesInternalAsync(string pdfPath, string outputDir,
@@ -162,7 +170,7 @@ public class PdfExtractorService
 
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 85);
-        using var stream = File.OpenWrite(outputPath);
+        using var stream = File.Create(outputPath);
         data.SaveTo(stream);
     }
 }

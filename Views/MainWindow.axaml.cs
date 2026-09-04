@@ -153,14 +153,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SlideCard_Click(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: SkippedSlideInfo slide } && DataContext is MainWindowViewModel vm)
-        {
-            vm.ToggleSlideSkip(slide);
-        }
-    }
-
     private void SlideCard_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control control && control.DataContext is SkippedSlideInfo slide && DataContext is MainWindowViewModel vm)

@@ -2,7 +2,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LectureSmith.ViewModels"
         xmlns:m="using:LectureSmith.Models"
-        xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
         x:Class="LectureSmith.Views.MainWindow"
         x:Name="Root"
         x:DataType="vm:MainWindowViewModel"
@@ -34,23 +33,6 @@
     <Style Selector="Border.slideCard.skipped:pointerover">
       <Setter Property="BorderBrush" Value="#f87171"/>
       <Setter Property="Background" Value="#3a161e"/>
-    </Style>
-
-    <!-- Slide Card Button wrapper -->
-    <Style Selector="Button.slideCardBtn">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="Padding" Value="0"/>
-      <Setter Property="Margin" Value="6"/>
-      <Setter Property="Cursor" Value="Hand"/>
-    </Style>
-    <Style Selector="Button.slideCardBtn:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="BorderThickness" Value="0"/>
-    </Style>
-    <Style Selector="Button.slideCardBtn:pressed /template/ ContentPresenter">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="BorderThickness" Value="0"/>
     </Style>
 
     <!-- Global styles -->
@@ -128,29 +110,6 @@
     </Style>
     <Style Selector="Button.small:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="#2a2e4a"/>
-    </Style>
-
-    <!-- Preview Toggle Tab Styles -->
-    <Style Selector="Button.previewTab">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#94a3b8"/>
-      <Setter Property="Padding" Value="12,6"/>
-      <Setter Property="CornerRadius" Value="6"/>
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="FontWeight" Value="Medium"/>
-    </Style>
-    <Style Selector="Button.previewTab:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2e4a"/>
-      <Setter Property="Foreground" Value="White"/>
-    </Style>
-    <Style Selector="Button.previewTab.active">
-      <Setter Property="Background" Value="#7c3aed"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontWeight" Value="Bold"/>
-    </Style>
-    <Style Selector="Button.previewTab.active:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#6d28d9"/>
-      <Setter Property="Foreground" Value="White"/>
     </Style>
 
     <!-- Settings button -->
@@ -501,7 +460,7 @@
 
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <!-- Start Follow-up Session Button -->
-                <Button Classes="tab" Command="{Binding StartFollowUpSessionCommand}"
+                <Button Classes="secondary" Command="{Binding StartFollowUpSessionCommand}"
                         IsVisible="{Binding !IsFollowUpSessionActive}"
                         IsEnabled="{Binding HasLivePreview}"
                         ToolTip.Tip="Start interactive follow-up Q&amp;A session about the lecture">
@@ -539,7 +498,7 @@
                   <TextBlock Text="Upload lecture slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="#334155" HorizontalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Active preview view -->
+                <!-- Active preview text -->
                 <ScrollViewer IsVisible="{Binding HasLivePreview}" Name="LivePreviewScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                   <SelectableTextBlock Text="{Binding LivePreview}"
                                        FontFamily="Cascadia Code, Consolas, Courier New, monospace"
@@ -627,7 +586,11 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                   <TextBlock Text="🤖 LectureSmith Assistant" FontSize="10" FontWeight="Bold" Foreground="#a78bfa"/>
                                 </StackPanel>
-                                <md:MarkdownScrollViewer Markdown="{Binding Content}"/>
+                                <SelectableTextBlock Text="{Binding Content}"
+                                                     Foreground="#e2e8f0"
+                                                     FontSize="12"
+                                                     LineHeight="19"
+                                                     TextWrapping="Wrap"/>
                               </StackPanel>
                             </Border>
                           </Grid>

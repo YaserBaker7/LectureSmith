@@ -4,7 +4,7 @@
 [![Framework](https://img.shields.io/badge/Framework-.NET%209.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI%2011.3-orange.svg)](https://avaloniaui.net/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue.svg)](#)
-[![Version](https://img.shields.io/badge/Version-v2.5.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
+[![Version](https://img.shields.io/badge/Version-v2.6.0.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **LectureSmith** is a modern, high-performance desktop application designed for students and educators. It turns lecture slides (PDFs) and reference textbooks into comprehensive, beautifully structured study notes using **Google AI Studio (Gemini API)**.
@@ -13,24 +13,21 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 
 ---
 
-## 🌟 What's New in v2.5.0
+## 🌟 What's New in v2.6.0.0
 
-* 💬 **Interactive Follow-up Q&A Chat Session:**
-  * After notes are generated, launch an integrated chat session directly inside the app.
-  * Uses Gemini's `ChatSession` API — conversation context is maintained server-side without resending the entire notes on each message.
-  * **Rich Markdown Rendering:** AI answers render formatted Markdown (bold, headings, bullet lists, code chips).
-  * **Resizable Split View:** A draggable resizer bar (`GridSplitter`) allows you to resize between the reference notes and the chat window freely.
-  * **Auto-Scrolling:** Chat automatically follows the conversation as messages stream in.
-* 📋 **Visual Slide Skipping & Zero-Waste Caching:**
-  * Open a visual slide gallery showing **actual full-resolution slide photos**.
-  * Click any slide to mark it as **SKIPPED** with an instant visual overlay.
-  * Skipped slides still supply lecture context to the AI, but appear only as heading + `"Skipped"` in your notes.
-  * **Smart Caching:** Extracted slide images are stored in `%TEMP%\LectureSmith\slides_{hash}\` and reused directly for Vision AI processing with zero duplicate extractions.
-* 🔄 **Auto-Continuation Engine for Complete Slide Decks:**
-  * Solves the common LLM issue of stopping early on long decks (40+ slides).
-  * LectureSmith tracks coverage and automatically issues continuation requests starting from where the model stopped, ensuring **100% of slides are covered** every time.
-* 📊 **Smart Diagram & Figure Referencing:**
-  * System prompt instructs Gemini to conceptually explain figures and reference them directly on the slide (`"As shown in the diagram on Slide X..."`) instead of attempting awkward ASCII or terminal-style text art.
+* 📐 **Comprehensive Math Typesetting (MathJax 3 + Custom Unicode Engine):**
+  * Mathematical formulas, equations, fractions, and Greek notation (`$...$` and `$$...$$`) are cleanly rendered in both HTML and PDF outputs.
+  * Markdown pipeline tuned to preserve LaTeX curly braces and mathematical subscript/superscript groupings.
+* 🖨️ **High-Fidelity Headless Browser PDF Generation:**
+  * Uses your installed browser (Microsoft Edge or Google Chrome) in isolated headless mode to produce crisp, publication-quality A4 PDFs with vector math and styled callouts.
+  * Falls back automatically to QuestPDF if no browser is detected.
+* 🧹 **Automatic Slide Cleanup for PDF & HTML Exports:**
+  * For self-contained HTML (base64) and PDF (binary), temporary slide image folders are cleaned up automatically after export, keeping output folders tidy.
+  * Obsidian markdown preserves the slide directory as needed for relative image embeds.
+* ⚡ **Performance, Memory, and Error Handling Audits:**
+  * Slide thumbnail bitmaps now implement deterministic disposal to minimize memory overhead.
+  * Multi-core OCR and Docnet native calls fully thread-synchronized.
+  * Pre-compiled segment parsing regex and defensive process tree termination for headless printing.
 
 ---
 
@@ -51,9 +48,9 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 * Target output in **English** or **Danish**.
 
 ### 📄 Export Formats
-* **Obsidian Notes (.md):** Includes slide image embeds (`![[slides/slide_XX.png]]`), callouts (`> [!tip]`), and tables.
-* **Self-Contained HTML (.html):** Standalone file with embedded base64 images, styled typography, and dark mode support.
-* **Printable PDF (.pdf):** Clean, publication-quality document layout via QuestPDF.
+* **Obsidian Notes (.md):** Includes slide image embeds (`![[slides/slide_XX.png]]`), callouts (`> [!tip]`), LaTeX formulas, and tables.
+* **Self-Contained HTML (.html):** Standalone file with embedded base64 images, styled typography, MathJax 3 LaTeX math typesetting, and dark mode support.
+* **Printable PDF (.pdf):** High-fidelity document layout with vector MathJax LaTeX typesetting, embedded slide images, and Obsidian-like typography via headless browser rendering.
 
 ### 🤖 AI Model Discovery & Management
 * Dynamic model discovery querying Google AI API in real time.
@@ -71,8 +68,9 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 | **Desktop UI** | Avalonia UI 11.3 (MVVM with CommunityToolkit.Mvvm) |
 | **PDF Extraction** | Docnet.Core |
 | **OCR Scanner** | Tesseract OCR 5.2 |
-| **Markdown Processor** | Markdig + Markdown.Avalonia |
-| **PDF Generation** | QuestPDF |
+| **Markdown Processor** | Markdig |
+| **PDF Generation** | Headless Browser Engine (Edge/Chrome) + QuestPDF Fallback |
+| **Math Typesetting** | MathJax 3 + Custom Unicode MathFormatter |
 | **Graphics Library** | SkiaSharp |
 | **AI Integration** | Mscc.GenerativeAI (Google Gemini API) |
 
@@ -95,12 +93,12 @@ graph TD
     E --> F
 
     F -->|Construct Prompt + Auto-Continuation| G[GeminiService]
-    G -->|Gemini Stream| H[Live Markdown Preview]
+    G -->|Gemini Stream| H[Live Note Preview]
 
     H -->|Complete Notes| I[OutputExporterService]
     I -->|Export Markdown| J[Obsidian .md]
     I -->|Embed Base64| K[Self-Contained HTML]
-    I -->|QuestPDF Flow| L[Printable PDF]
+    I -->|Headless Browser| L[Printable PDF]
 
     H -->|Start Q&A| M[Follow-up Session]
     M -->|Gemini ChatSession| G
@@ -127,6 +125,7 @@ LectureSmith/
 │   └── UploadedFile.cs
 ├── Services/            # Business logic and external APIs
 │   ├── GeminiService.cs
+│   ├── MathFormatter.cs
 │   ├── NoteGeneratorService.cs
 │   ├── OcrService.cs
 │   ├── OutputExporterService.cs
@@ -139,8 +138,6 @@ LectureSmith/
 ├── Views/               # Avalonia XAML views
 │   ├── MainWindow.axaml
 │   └── MainWindow.axaml.cs
-├── Converters/          # Value converters
-│   └── EnumDisplayNameConverter.cs
 └── Assets/              # Icons and styling resources
     └── app-icon.ico
 ```

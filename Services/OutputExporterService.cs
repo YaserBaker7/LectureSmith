@@ -16,13 +16,9 @@ public class OutputExporterService
     private static readonly Regex SlideImageRegex =
         new(@"(?:\!\[\[|\!\[.*?\]\()([^\])\s]+)", RegexOptions.Compiled);
 
-    // Inline markdown patterns for PDF rendering
-    private static readonly Regex InlineBoldRegex =
-        new(@"\*\*(.+?)\*\*", RegexOptions.Compiled);
-    private static readonly Regex InlineItalicRegex =
-        new(@"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Compiled);
-    private static readonly Regex InlineCodeRegex =
-        new(@"`([^`]+)`", RegexOptions.Compiled);
+    // Inline markdown regex for QuestPDF segment parsing (bold, code, math, italic)
+    private static readonly Regex CombinedInlineRegex =
+        new(@"\*\*(.+?)\*\*|`([^`]+)`|(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Compiled);
 
     /// <summary>
     /// Exports generated notes to the specified format.
@@ -42,13 +38,32 @@ public class OutputExporterService
 
         var baseName = $"{settings.EffectiveCourseName} - Notes";
 
-        return settings.Format switch
+        try
         {
-            OutputFormat.Obsidian => await ExportObsidianAsync(result, settings, baseName),
-            OutputFormat.HTML => await ExportHtmlAsync(result, settings, baseName),
-            OutputFormat.PDF => await ExportPdfAsync(result, settings, baseName),
-            _ => throw new ArgumentOutOfRangeException(nameof(settings.Format))
-        };
+            return settings.Format switch
+            {
+                OutputFormat.Obsidian => await ExportObsidianAsync(result, settings, baseName),
+                OutputFormat.HTML => await ExportHtmlAsync(result, settings, baseName),
+                OutputFormat.PDF => await ExportPdfAsync(result, settings, baseName),
+                _ => throw new ArgumentOutOfRangeException(nameof(settings.Format))
+            };
+        }
+        finally
+        {
+            // For HTML (base64 embedded) and PDF (binary embedded), images are self-contained.
+            // Only Obsidian/Markdown requires the external slides folder to remain on disk.
+            if (settings.Format != OutputFormat.Obsidian && Directory.Exists(slidesOutputDir))
+            {
+                try
+                {
+                    Directory.Delete(slidesOutputDir, recursive: true);
+                }
+                catch
+                {
+                    // Ignore transient lock delays
+                }
+            }
+        }
     }
 
     private static async Task<string> ExportObsidianAsync(GenerationResult result, GenerationSettings settings, string baseName)
@@ -62,9 +77,7 @@ public class OutputExporterService
     {
         var outputFile = Path.Combine(settings.OutputPath, $"{baseName}.html");
 
-        var pipeline = new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions()
-            .Build();
+        var pipeline = CreateMarkdownPipeline();
         var htmlBody = Markdig.Markdown.ToHtml(result.MarkdownContent, pipeline);
 
         // Convert image paths to base64 for self-contained HTML
@@ -77,6 +90,20 @@ public class OutputExporterService
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>{{baseName}}</title>
+            <!-- MathJax configuration and library for rendering LaTeX math formulas -->
+            <script>
+                window.MathJax = {
+                    tex: {
+                        inlineMath: [['$', '$'], ['\\(', '\\)']],
+                        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                        processEscapes: true
+                    },
+                    options: {
+                        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+                    }
+                };
+            </script>
+            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
             <style>
                 :root { --bg: #1a1a2e; --surface: #16213e; --card: #1e2d4a; --text: #e0e0e0; --accent: #7c3aed; --accent2: #a78bfa; --border: #2d3a5a; }
                 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -98,6 +125,29 @@ public class OutputExporterService
                 li { margin: 0.3rem 0; }
                 hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
                 strong { color: #c4b5fd; }
+                .mjx-chtml { color: #c4b5fd !important; }
+
+                @media print {
+                    body {
+                        background: #ffffff !important;
+                        color: #1e293b !important;
+                        padding: 0 !important;
+                        max-width: 100% !important;
+                    }
+                    h1 { color: #5b21b6 !important; border-bottom-color: #e2e8f0 !important; }
+                    h2 { color: #6d28d9 !important; border-bottom-color: #f1f5f9 !important; }
+                    h3 { color: #7c3aed !important; }
+                    strong { color: #0f172a !important; }
+                    blockquote { background: #f8faff !important; border-left-color: #8b5cf6 !important; color: #1e293b !important; }
+                    code { background: #f1f5f9 !important; color: #6d28d9 !important; }
+                    pre { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+                    pre code { color: #1e293b !important; }
+                    table, th, td { border-color: #cbd5e1 !important; }
+                    th { background: #f1f5f9 !important; color: #4338ca !important; }
+                    tr:nth-child(even) { background: #f8fafc !important; }
+                    img { box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; border-color: #cbd5e1 !important; }
+                    .mjx-chtml { color: #1e293b !important; }
+                }
             </style>
         </head>
         <body>
@@ -110,10 +160,72 @@ public class OutputExporterService
         return outputFile;
     }
 
-    private static async Task<string> ExportPdfAsync(GenerationResult result, GenerationSettings settings, string baseName)
+    private async Task<string> ExportPdfAsync(GenerationResult result, GenerationSettings settings, string baseName)
     {
         var outputFile = Path.Combine(settings.OutputPath, $"{baseName}.pdf");
 
+        // Try high-fidelity HTML-to-PDF export via headless browser (Edge / Chrome)
+        var browserPath = FindHeadlessBrowserPath();
+        if (!string.IsNullOrEmpty(browserPath))
+        {
+            var tempHtml = Path.Combine(Path.GetTempPath(), $"LectureSmith_PDF_{Guid.NewGuid():N}.html");
+            var tempUserData = Path.Combine(Path.GetTempPath(), $"LectureSmith_Edge_{Guid.NewGuid():N}");
+            try
+            {
+                var pipeline = CreateMarkdownPipeline();
+                var htmlBody = Markdig.Markdown.ToHtml(result.MarkdownContent, pipeline);
+                htmlBody = await EmbedImagesAsBase64Async(htmlBody, settings.OutputPath);
+
+                var printableHtml = BuildPrintableHtml(baseName, htmlBody);
+                await File.WriteAllTextAsync(tempHtml, printableHtml, Encoding.UTF8);
+
+                // If old outputFile exists, delete it so we ensure a clean, freshly rendered PDF
+                if (File.Exists(outputFile))
+                {
+                    try { File.Delete(outputFile); } catch { }
+                }
+
+                Directory.CreateDirectory(tempUserData);
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = browserPath,
+                    Arguments = $"--headless=new --disable-gpu --no-first-run --no-default-browser-check --no-pdf-header-footer --run-all-compositor-stages-before-draw --virtual-time-budget=5000 --user-data-dir=\"{tempUserData}\" --print-to-pdf=\"{outputFile}\" \"{tempHtml}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+
+                using var proc = System.Diagnostics.Process.Start(psi);
+                if (proc != null)
+                {
+                    try
+                    {
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+                        await proc.WaitForExitAsync(cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        try { proc.Kill(entireProcessTree: true); } catch { }
+                    }
+
+                    if (File.Exists(outputFile) && new FileInfo(outputFile).Length > 0)
+                    {
+                        return outputFile;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OutputExporterService] Headless PDF generation failed: {ex.Message}");
+            }
+            finally
+            {
+                try { if (File.Exists(tempHtml)) File.Delete(tempHtml); } catch { }
+                try { if (Directory.Exists(tempUserData)) Directory.Delete(tempUserData, recursive: true); } catch { }
+            }
+        }
+
+        // Fallback: QuestPDF generation
         await Task.Run(() =>
         {
             QuestPDF.Settings.License = LicenseType.Community;
@@ -148,6 +260,207 @@ public class OutputExporterService
         return outputFile;
     }
 
+    private static MarkdownPipeline CreateMarkdownPipeline()
+    {
+        return new MarkdownPipelineBuilder()
+            .UsePipeTables()
+            .UseGridTables()
+            .UseAutoLinks()
+            .UseTaskLists()
+            .Build();
+    }
+
+    private static string? FindHeadlessBrowserPath()
+    {
+        var candidates = new[]
+        {
+            @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            @"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Edge\Application\msedge.exe"),
+            @"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\Application\chrome.exe")
+        };
+
+        foreach (var path in candidates)
+        {
+            if (File.Exists(path)) return path;
+        }
+
+        return null;
+    }
+
+    private static string BuildPrintableHtml(string title, string bodyContent)
+    {
+        return $$"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{{title}}</title>
+            <!-- MathJax 3 Configuration for LaTeX Math Typesetting -->
+            <script>
+                window.MathJax = {
+                    tex: {
+                        inlineMath: [['$', '$'], ['\\(', '\\)']],
+                        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                        processEscapes: true
+                    },
+                    options: {
+                        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+                    }
+                };
+            </script>
+            <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+            <style>
+                @page {
+                    size: A4;
+                    margin: 18mm 16mm;
+                }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+                    color: #1e293b;
+                    background: #ffffff;
+                    line-height: 1.65;
+                    font-size: 14px;
+                    padding: 0;
+                    max-width: 100%;
+                }
+                h1 {
+                    color: #5b21b6;
+                    font-size: 22px;
+                    font-weight: 700;
+                    margin: 22px 0 10px;
+                    border-bottom: 2px solid #e2e8f0;
+                    padding-bottom: 6px;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                h2 {
+                    color: #6d28d9;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin: 20px 0 8px;
+                    border-bottom: 1px solid #f1f5f9;
+                    padding-bottom: 4px;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                h3 {
+                    color: #7c3aed;
+                    font-size: 15px;
+                    font-weight: 600;
+                    margin: 16px 0 6px;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                h4, h5, h6 {
+                    color: #475569;
+                    font-size: 13.5px;
+                    font-weight: 600;
+                    margin: 14px 0 4px;
+                    page-break-after: avoid;
+                    break-after: avoid;
+                }
+                p {
+                    margin: 8px 0;
+                }
+                ul, ol {
+                    margin: 8px 0;
+                    padding-left: 22px;
+                }
+                li {
+                    margin: 3px 0;
+                }
+                strong {
+                    color: #0f172a;
+                }
+                blockquote {
+                    border-left: 4px solid #8b5cf6;
+                    background: #f8faff;
+                    padding: 10px 16px;
+                    margin: 12px 0;
+                    border-radius: 0 6px 6px 0;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                code {
+                    background: #f1f5f9;
+                    color: #6d28d9;
+                    padding: 2px 5px;
+                    border-radius: 4px;
+                    font-size: 0.9em;
+                    font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+                }
+                pre {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                    padding: 12px;
+                    margin: 12px 0;
+                    overflow-x: auto;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                pre code {
+                    background: none;
+                    color: #1e293b;
+                    padding: 0;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 14px 0;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                th, td {
+                    border: 1px solid #cbd5e1;
+                    padding: 8px 12px;
+                    text-align: left;
+                    font-size: 13px;
+                }
+                th {
+                    background: #f1f5f9;
+                    color: #4338ca;
+                    font-weight: 600;
+                }
+                tr:nth-child(even) {
+                    background: #f8fafc;
+                }
+                img {
+                    display: block;
+                    max-width: 95%;
+                    margin: 16px auto;
+                    border-radius: 6px;
+                    border: 1px solid #cbd5e1;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                }
+                hr {
+                    border: none;
+                    border-top: 1px solid #e2e8f0;
+                    margin: 20px 0;
+                }
+                mjx-container {
+                    color: #1e293b !important;
+                }
+            </style>
+        </head>
+        <body>
+        {{bodyContent}}
+        </body>
+        </html>
+        """;
+    }
+
     /// <summary>
     /// Renders markdown lines into QuestPDF column components.
     /// Supports headers, images, blockquotes, lists, horizontal rules, tables,
@@ -179,6 +492,18 @@ public class OutputExporterService
                     .DefaultTextStyle(x => x.FontSize(13).Bold().FontColor(Colors.Purple.Lighten2))
                     .Text(text => RenderInlineMarkdown(text, trimmed[4..]));
             }
+            else if (trimmed.StartsWith("#### "))
+            {
+                col.Item().PaddingTop(6)
+                    .DefaultTextStyle(x => x.FontSize(11.5f).Bold().FontColor(Colors.Purple.Lighten1))
+                    .Text(text => RenderInlineMarkdown(text, trimmed[5..]));
+            }
+            else if (trimmed.StartsWith("##### "))
+            {
+                col.Item().PaddingTop(4)
+                    .DefaultTextStyle(x => x.FontSize(11).Bold().FontColor(Colors.Grey.Darken2))
+                    .Text(text => RenderInlineMarkdown(text, trimmed[6..]));
+            }
             else if (trimmed.StartsWith("![") || trimmed.StartsWith("![["))
             {
                 var imgMatch = SlideImageRegex.Match(trimmed);
@@ -190,6 +515,20 @@ public class OutputExporterService
                         col.Item().PaddingVertical(5).Image(imgFullPath).FitWidth();
                     }
                 }
+            }
+            else if (trimmed.Trim().StartsWith("$$") && trimmed.Trim().EndsWith("$$") && trimmed.Trim().Length > 2)
+            {
+                // Display math formula block (handles both root and indented lines)
+                var mathContent = trimmed.Trim().Trim('$', ' ');
+                var formatted = MathFormatter.FormatFormula(mathContent, useMarkdownEmphasis: false);
+                col.Item().PaddingVertical(4).Background(Colors.Grey.Lighten4)
+                    .BorderLeft(3).BorderColor(Colors.Purple.Medium)
+                    .Padding(8)
+                    .Text(text =>
+                    {
+                        text.Span("📐 Formula: ").Bold().FontColor(Colors.Purple.Darken2);
+                        text.Span(formatted).FontColor(Colors.Grey.Darken3);
+                    });
             }
             else if (trimmed.StartsWith('|'))
             {
@@ -236,14 +575,22 @@ public class OutputExporterService
         }
     }
 
+    private static readonly Regex PreDisplayMathRegex =
+        new(@"(?s)\$\$(.+?)\$\$", RegexOptions.Compiled);
+    private static readonly Regex PreInlineMathRegex =
+        new(@"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)", RegexOptions.Compiled);
+
     /// <summary>
-    /// Parses inline markdown (bold, italic, code) and renders with proper QuestPDF styling.
-    /// This prevents raw **asterisks** from appearing in the PDF output.
+    /// Parses inline markdown (bold, italic, code, math) and renders with proper QuestPDF styling.
+    /// This prevents raw **asterisks** or LaTeX syntax from appearing in the PDF output.
     /// </summary>
     private static void RenderInlineMarkdown(TextDescriptor text, string content)
     {
-        // Tokenize: find all bold, italic, and code spans
-        // Process order: bold first (**), then code (`), then italic (*)
+        // First convert any display ($$...$$) or inline ($...$) math into formatted typography so math
+        // inside bold (e.g. **Population ($N$):**) or bullets is always cleanly rendered
+        content = PreDisplayMathRegex.Replace(content, m => MathFormatter.FormatFormula(m.Groups[1].Value, useMarkdownEmphasis: false));
+        content = PreInlineMathRegex.Replace(content, m => MathFormatter.FormatFormula(m.Groups[1].Value, useMarkdownEmphasis: false));
+
         var segments = new List<(string Text, InlineStyle Style)>();
         ParseInlineSegments(content, segments);
 
@@ -261,6 +608,9 @@ public class OutputExporterService
                     text.Span(segment.Text).FontFamily("Consolas").FontSize(10)
                         .BackgroundColor(Colors.Grey.Lighten4);
                     break;
+                case InlineStyle.Math:
+                    text.Span(segment.Text).Italic().FontColor(Colors.Purple.Darken2);
+                    break;
                 default:
                     text.Span(segment.Text);
                     break;
@@ -268,18 +618,15 @@ public class OutputExporterService
         }
     }
 
-    private enum InlineStyle { Normal, Bold, Italic, Code }
+    private enum InlineStyle { Normal, Bold, Italic, Code, Math }
 
     /// <summary>
-    /// Parses a string for **bold**, *italic*, and `code` segments.
+    /// Parses a string for **bold**, *italic*, `code`, and $math$ segments.
     /// </summary>
     private static void ParseInlineSegments(string input, List<(string Text, InlineStyle Style)> segments)
     {
-        // Combined regex to match bold, code, or italic in order of precedence
-        var combinedRegex = new Regex(@"\*\*(.+?)\*\*|`([^`]+)`|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Compiled);
-
         var lastIndex = 0;
-        foreach (Match match in combinedRegex.Matches(input))
+        foreach (Match match in CombinedInlineRegex.Matches(input))
         {
             // Add any text before this match
             if (match.Index > lastIndex)
@@ -299,8 +646,14 @@ public class OutputExporterService
             }
             else if (match.Groups[3].Success)
             {
+                // $math$
+                var formattedMath = MathFormatter.FormatFormula(match.Groups[3].Value, useMarkdownEmphasis: false);
+                segments.Add((formattedMath, InlineStyle.Math));
+            }
+            else if (match.Groups[4].Success)
+            {
                 // *italic*
-                segments.Add((match.Groups[3].Value, InlineStyle.Italic));
+                segments.Add((match.Groups[4].Value, InlineStyle.Italic));
             }
 
             lastIndex = match.Index + match.Length;
