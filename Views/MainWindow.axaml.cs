@@ -1,7 +1,10 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using LectureSmith.Models;
 using LectureSmith.ViewModels;
 
@@ -29,19 +32,40 @@ public partial class MainWindow : Window
             booksZone.AddHandler(DragDrop.DragOverEvent, DragOver);
         }
 
-        var leftScroller = this.FindControl<ScrollViewer>("LeftPanelScroller");
-        if (leftScroller != null)
+        // Intercept pointer wheel events on closed ComboBoxes so they don't accidentally cycle items when scrolling the page.
+        // When a ComboBox dropdown IS open, allow normal scrolling inside the dropdown list.
+        this.AddHandler(InputElement.PointerWheelChangedEvent, (sender, e) =>
         {
-            leftScroller.AddHandler(Avalonia.Input.InputElement.PointerWheelChangedEvent, (sender, e) =>
+            if (e.Source is Avalonia.Visual visual)
             {
-                if (sender is ScrollViewer sv)
+                // If scrolling inside an open popup / dropdown list, do not intercept
+                if (visual.FindAncestorOfType<Popup>() != null ||
+                    visual.FindAncestorOfType<OverlayPopupHost>() != null)
                 {
-                    var delta = e.Delta.Y;
-                    sv.Offset = new Avalonia.Vector(sv.Offset.X, sv.Offset.Y - delta * 50);
+                    return;
+                }
+
+                // Check if the source or any ancestor is a ComboBox
+                var cb = (visual as ComboBox) ?? visual.FindAncestorOfType<ComboBox>() ?? visual.FindLogicalAncestorOfType<ComboBox>();
+                if (cb != null)
+                {
+                    if (cb.IsDropDownOpen)
+                    {
+                        // Dropdown is open: let the dropdown menu scroll naturally
+                        return;
+                    }
+
+                    // Dropdown is closed: prevent ComboBox from cycling items and scroll the parent scroll viewer instead
+                    var scroller = visual.FindAncestorOfType<ScrollViewer>() ?? this.FindControl<ScrollViewer>("LeftPanelScroller");
+                    if (scroller != null)
+                    {
+                        var delta = e.Delta.Y;
+                        scroller.Offset = new Avalonia.Vector(scroller.Offset.X, scroller.Offset.Y - delta * 50);
+                    }
                     e.Handled = true;
                 }
-            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        }
+            }
+        }, RoutingStrategies.Tunnel);
 
         // Auto-scroll chat to bottom when messages are added
         DataContextChanged += (s, e) =>
