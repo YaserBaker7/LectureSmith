@@ -78,7 +78,7 @@ public class GeminiService
         {
             var response = _model!.GenerateContentStream(combinedPrompt);
             return await StreamResponseAsync(response, progress, ct);
-        });
+        }, 3, ct);
     }
 
     /// <summary>
@@ -104,7 +104,7 @@ public class GeminiService
         {
             var response = _model!.GenerateContentStream(request);
             return await StreamResponseAsync(response, progress, ct);
-        });
+        }, 3, ct);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public class GeminiService
         {
             var response = _chatSession.SendMessageStream(message, cancellationToken: ct);
             return await StreamResponseAsync(response, progress, ct);
-        });
+        }, 3, ct);
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ public class GeminiService
         _chatSession = null;
     }
 
-    private static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action, int maxRetries = 3)
+    private static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action, int maxRetries = 3, CancellationToken ct = default)
     {
         int attempt = 0;
         while (true)
@@ -162,7 +162,7 @@ public class GeminiService
             }
             catch (Exception ex) when (attempt <= maxRetries && (ex.Message.Contains("429") || ex.Message.Contains("Quota") || ex.Message.Contains("503") || ex.Message.Contains("500")))
             {
-                await Task.Delay((int)Math.Pow(2, attempt) * 1000);
+                await Task.Delay((int)Math.Pow(2, attempt) * 1000, ct);
             }
         }
     }

@@ -6,129 +6,95 @@
         x:Name="Root"
         x:DataType="vm:MainWindowViewModel"
         Title="LectureSmith"
-        Width="1180" Height="760"
-        MinWidth="950" MinHeight="650"
+        Width="1260" Height="820"
+        MinWidth="1050" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
-        Background="#0b0b14"
+        Background="{DynamicResource AppBackground}"
         Icon="avares://LectureSmith/Assets/app-icon.ico">
 
   <Window.Styles>
-    <!-- Slide Card in Skip Dialog -->
-    <Style Selector="Border.slideCard">
-      <Setter Property="Background" Value="#15172b"/>
-      <Setter Property="BorderBrush" Value="#2a2e4a"/>
-      <Setter Property="BorderThickness" Value="1.5"/>
-      <Setter Property="CornerRadius" Value="8"/>
-      <Setter Property="Cursor" Value="Hand"/>
-    </Style>
-    <Style Selector="Border.slideCard:pointerover">
-      <Setter Property="BorderBrush" Value="#8b5cf6"/>
-      <Setter Property="Background" Value="#1e1b4b"/>
-    </Style>
-    <Style Selector="Border.slideCard.skipped">
-      <Setter Property="BorderBrush" Value="#ef4444"/>
-      <Setter Property="Background" Value="#2b1117"/>
-    </Style>
-    <Style Selector="Border.slideCard.skipped:pointerover">
-      <Setter Property="BorderBrush" Value="#f87171"/>
-      <Setter Property="Background" Value="#3a161e"/>
+    <!-- Base Typography -->
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+      <Setter Property="FontFamily" Value="Inter, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif"/>
     </Style>
 
-    <!-- Global styles -->
-    <Style Selector="TextBlock">
-      <Setter Property="Foreground" Value="#e2e8f0"/>
-      <Setter Property="FontFamily" Value="Segoe UI, Inter, sans-serif"/>
-    </Style>
+    <!-- Inputs & Dropdowns -->
     <Style Selector="TextBox">
-      <Setter Property="Background" Value="#15172b"/>
-      <Setter Property="Foreground" Value="#f1f5f9"/>
-      <Setter Property="BorderBrush" Value="#2a2e4a"/>
+      <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="CornerRadius" Value="8"/>
       <Setter Property="Padding" Value="10,8"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
     </Style>
     <Style Selector="TextBox:focus">
-      <Setter Property="BorderBrush" Value="#8b5cf6"/>
-    </Style>
-    <Style Selector="ComboBox">
-      <Setter Property="Background" Value="#15172b"/>
-      <Setter Property="Foreground" Value="#f1f5f9"/>
-      <Setter Property="BorderBrush" Value="#2a2e4a"/>
-      <Setter Property="CornerRadius" Value="8"/>
-      <Setter Property="Padding" Value="10,8"/>
-      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
     </Style>
 
-    <!-- Primary button -->
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="10,8"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ComboBox:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
+    </Style>
+
+    <!-- Interactive Buttons with Fluid Micro-Interactions -->
+    <Style Selector="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <!-- Primary Button -->
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#7c3aed"/>
-      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextInverse}"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Padding" Value="20,12"/>
-      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="HorizontalAlignment" Value="Stretch"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#6d28d9"/>
+      <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
     </Style>
     <Style Selector="Button.primary:disabled /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2e4a"/>
-      <Setter Property="Foreground" Value="#64748b"/>
+      <Setter Property="Background" Value="{DynamicResource CardBorderBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
     </Style>
 
-    <!-- Back button -->
-    <Style Selector="Button.backBtn">
-      <Setter Property="Background" Value="#1e1b4b"/>
-      <Setter Property="Foreground" Value="#c4b5fd"/>
-      <Setter Property="BorderBrush" Value="#312e81"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Padding" Value="14,8"/>
-      <Setter Property="CornerRadius" Value="8"/>
-    </Style>
-    <Style Selector="Button.backBtn:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#312e81"/>
-      <Setter Property="Foreground" Value="White"/>
-    </Style>
-
-    <!-- Danger button -->
-    <Style Selector="Button.danger">
-      <Setter Property="Background" Value="#ef4444"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="Padding" Value="14,8"/>
-      <Setter Property="CornerRadius" Value="8"/>
-    </Style>
-
-    <!-- Small button -->
-    <Style Selector="Button.small">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#94a3b8"/>
-      <Setter Property="Padding" Value="6,3"/>
-      <Setter Property="CornerRadius" Value="6"/>
-      <Setter Property="FontSize" Value="11"/>
-    </Style>
-    <Style Selector="Button.small:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2e4a"/>
-    </Style>
-
-    <!-- Settings button -->
-    <Style Selector="Button.settings">
-      <Setter Property="Background" Value="#1e1b4b"/>
-      <Setter Property="Foreground" Value="#c4b5fd"/>
-      <Setter Property="Padding" Value="10,6"/>
-      <Setter Property="CornerRadius" Value="8"/>
-      <Setter Property="FontSize" Value="14"/>
-    </Style>
-    <Style Selector="Button.settings:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#312e81"/>
-    </Style>
-
-    <!-- Secondary button -->
+    <!-- Secondary Button -->
     <Style Selector="Button.secondary">
-      <Setter Property="Background" Value="#1e2238"/>
-      <Setter Property="Foreground" Value="#c4b5fd"/>
-      <Setter Property="BorderBrush" Value="#2a2e4a"/>
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundSecondary}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="FontWeight" Value="Medium"/>
       <Setter Property="Padding" Value="14,8"/>
@@ -137,562 +103,987 @@
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
     <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2a2e4a"/>
-      <Setter Property="BorderBrush" Value="#8b5cf6"/>
+      <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorderHover}"/>
+    </Style>
+
+    <!-- Danger Button -->
+    <Style Selector="Button.danger">
+      <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource DangerHoverBrush}"/>
+    </Style>
+
+    <!-- Small Button -->
+    <Style Selector="Button.small">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+      <Setter Property="Padding" Value="6,3"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.small:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+    </Style>
+
+    <!-- Navigation Item Button in Left Sidebar -->
+    <Style Selector="Button.navItem">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+      <Setter Property="Padding" Value="14,10"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="FontWeight" Value="Medium"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.navItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+    </Style>
+    <Style Selector="Button.navItem.active /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSubtleBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AccentSubtleText}"/>
+    </Style>
+
+    <!-- Back Button -->
+    <Style Selector="Button.backBtn">
+      <Setter Property="Background" Value="{DynamicResource AccentSubtleBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AccentSubtleText}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSubtleBorder}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <Style Selector="Button.backBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
       <Setter Property="Foreground" Value="White"/>
     </Style>
 
-    <Style Selector="Button TextBlock">
-      <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}"/>
-    </Style>
-
-    <!-- Drop zone -->
-    <Style Selector="Border.dropzone">
-      <Setter Property="BorderBrush" Value="#2a2e4a"/>
-      <Setter Property="BorderThickness" Value="1.5"/>
-      <Setter Property="CornerRadius" Value="8"/>
-      <Setter Property="Background" Value="#111322"/>
-      <Setter Property="Padding" Value="14"/>
-      <Setter Property="MinHeight" Value="54"/>
-    </Style>
-    <Style Selector="Border.dropzone:pointerover">
-      <Setter Property="BorderBrush" Value="#8b5cf6"/>
-      <Setter Property="Background" Value="#1e1b4b"/>
-    </Style>
-
-    <!-- Card -->
+    <!-- Bento Card Container -->
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="#131525"/>
-      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+      <Setter Property="CornerRadius" Value="14"/>
       <Setter Property="Padding" Value="16"/>
       <Setter Property="Margin" Value="0,0,0,12"/>
-      <Setter Property="BorderBrush" Value="#1e2238"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.2"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+        </Transitions>
+      </Setter>
     </Style>
 
-    <!-- Section header -->
+    <!-- Top Bento Stat Card -->
+    <Style Selector="Border.statCard">
+      <Setter Property="CornerRadius" Value="14"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="16,14"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.2"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.statCard:pointerover">
+      <Setter Property="RenderTransform" Value="translateY(-2px)"/>
+    </Style>
+
+    <!-- Dropzones with Lift Transition -->
+    <Style Selector="Border.dropzone">
+      <Setter Property="BorderBrush" Value="{DynamicResource DropzoneBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Background" Value="{DynamicResource DropzoneBackground}"/>
+      <Setter Property="Padding" Value="14"/>
+      <Setter Property="MinHeight" Value="56"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+          <BrushTransition Property="Background" Duration="0:0:0.2"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.dropzone:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource DropzoneHoverBorder}"/>
+      <Setter Property="Background" Value="{DynamicResource DropzoneHoverBackground}"/>
+      <Setter Property="RenderTransform" Value="translateY(-1px)"/>
+    </Style>
+
+    <!-- Section Header Text -->
     <Style Selector="TextBlock.sectionHeader">
       <Setter Property="FontSize" Value="13"/>
       <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Foreground" Value="#c4b5fd"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
       <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
-    <!-- File chip -->
+    <!-- File Chip -->
     <Style Selector="Border.fileChip">
-      <Setter Property="Background" Value="#1e2238"/>
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundSecondary}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrushSubtle}"/>
+      <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="CornerRadius" Value="8"/>
       <Setter Property="Padding" Value="10,6"/>
       <Setter Property="Margin" Value="0,4"/>
     </Style>
+
+    <!-- Slide Card in Skip Dialog -->
+    <Style Selector="Border.slideCard">
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundSecondary}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.slideCard:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+    <Style Selector="Border.slideCard.skipped">
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource DangerSubtleBg}"/>
+    </Style>
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,*">
+  <!-- ════════════════ APPLICATION MAIN LAYOUT GRID ════════════════ -->
+  <Grid RowDefinitions="Auto,*">
 
-    <!-- Top accent bar -->
-    <Border Grid.Row="0" Height="3">
-      <Border.Background>
-        <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
-          <GradientStop Color="#7c3aed" Offset="0"/>
-          <GradientStop Color="#a78bfa" Offset="0.5"/>
-          <GradientStop Color="#4f46e5" Offset="1"/>
-        </LinearGradientBrush>
-      </Border.Background>
-    </Border>
-
-    <!-- App Header Bar -->
-    <Border Grid.Row="1" Background="#111322" BorderBrush="#1e2238" BorderThickness="0,0,0,1" Padding="20,12">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <TextBlock Text="🎓" FontSize="26"/>
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="LectureSmith" FontSize="20" FontWeight="Bold" Foreground="#c4b5fd"/>
-            <TextBlock Text="AI Lecture Notes &amp; Study Assistant" FontSize="11" Foreground="#64748b"/>
+    <!-- ════════════════ TOP HEADER BAR (Full Width) ════════════════ -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource HeaderBackground}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="24,16">
+      <Grid>
+        <!-- Dynamic View Title -->
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <!-- When Workspace Active -->
+          <StackPanel IsVisible="{Binding IsWorkspaceActive}" Spacing="2">
+            <TextBlock Text="Workspace Overview" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+            <TextBlock Text="Synthesize comprehensive, exam-ready lecture notes and study guides" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
           </StackPanel>
-        </StackPanel>
 
-        <!-- Token usage badges in middle header -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
-          <Border Background="#1e1b4b" CornerRadius="8" Padding="12,5" BorderBrush="#312e81" BorderThickness="1">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="🗓️ Tokens This Week:" FontSize="11" Foreground="#a78bfa"/>
-              <TextBlock Text="{Binding WeeklyTokensDisplay}" FontSize="11" FontWeight="Bold" Foreground="#38bdf8"/>
-            </StackPanel>
-          </Border>
-          <Border Background="#1e1b4b" CornerRadius="8" Padding="12,5" BorderBrush="#312e81" BorderThickness="1">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="📅 Tokens This Month:" FontSize="11" Foreground="#a78bfa"/>
-              <TextBlock Text="{Binding MonthlyTokensDisplay}" FontSize="11" FontWeight="Bold" Foreground="#34d399"/>
-            </StackPanel>
-          </Border>
-        </StackPanel>
-
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Classes="settings" Command="{Binding OpenSettingsCommand}" Content="⚙ API Key Settings" ToolTip.Tip="Configure API Key" IsVisible="{Binding !ShowSettings}"/>
+          <!-- When Settings Active -->
+          <StackPanel IsVisible="{Binding IsSettingsActive}" Spacing="2">
+            <TextBlock Text="Settings &amp; Maintenance" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+            <TextBlock Text="Configure Gemini API credentials, reset caches, or completely uninstall application" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+          </StackPanel>
         </StackPanel>
       </Grid>
     </Border>
 
-    <!-- Grid Row 2: PAGE NAVIGATION (Main Workspace vs Dedicated Settings View) -->
-    <Grid Grid.Row="2">
+    <!-- ════════════════ SIDEBAR + CONTENT SPLIT ════════════════ -->
+    <Grid Grid.Row="1" ColumnDefinitions="260,*">
 
-      <!-- ════════════════ PAGE 1: MAIN WORKSPACE ════════════════ -->
-      <Grid IsVisible="{Binding !ShowSettings}" ColumnDefinitions="420,*" Margin="16,14,16,14">
+    <!-- ════════════════ LEFT NAVIGATION SIDEBAR ════════════════ -->
+    <Border Grid.Column="0"
+            Background="{DynamicResource SidebarBackground}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- ═══════ LEFT SIDEBAR / CONFIGURATION ═══════ -->
-        <ScrollViewer Grid.Column="0" Margin="0,0,10,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="0">
-
-            <!-- Materials Card -->
-            <Border Classes="card">
-              <StackPanel Spacing="8">
-                <TextBlock Classes="sectionHeader" Text="📎 Lecture Materials"/>
-
-                <!-- Slides drop zone -->
-                <TextBlock Text="Lecture Slides PDF (required):" FontSize="11" Foreground="#94a3b8"/>
-                <Border Classes="dropzone" Name="SlidesDropZone"
-                        DragDrop.AllowDrop="True"
-                        IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNull}}"
-                        Tapped="SlidesDropZone_Tapped">
-                  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                    <TextBlock Text="📄 Drag &amp; drop slides PDF here" HorizontalAlignment="Center" Foreground="#94a3b8" FontSize="12"/>
-                    <TextBlock Text="or click to browse" HorizontalAlignment="Center" FontSize="10" Foreground="#64748b"/>
-                  </StackPanel>
-                </Border>
-
-                <!-- Slides file chip -->
-                <Border Classes="fileChip" IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
-                  <Grid ColumnDefinitions="Auto,*,Auto">
-                    <TextBlock Text="📑" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="{Binding SlidesFile.FileName}" VerticalAlignment="Center" Margin="8,0" FontSize="12"/>
-                    <Button Grid.Column="2" Classes="small" Command="{Binding RemoveSlidesCommand}" Content="✕"/>
-                  </Grid>
-                </Border>
-
-                <!-- Books drop zone -->
-                <TextBlock Text="Reference Books (optional):" FontSize="11" Foreground="#94a3b8" Margin="0,4,0,0"/>
-                <Border Classes="dropzone" Name="BooksDropZone"
-                        DragDrop.AllowDrop="True"
-                        Tapped="BooksDropZone_Tapped">
-                  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                    <TextBlock Text="📚 Drag &amp; drop reference book PDFs" HorizontalAlignment="Center" Foreground="#94a3b8" FontSize="12"/>
-                    <TextBlock Text="or click to browse" HorizontalAlignment="Center" FontSize="10" Foreground="#64748b"/>
-                  </StackPanel>
-                </Border>
-
-                <!-- Book files list -->
-                <ItemsControl ItemsSource="{Binding BookFiles}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="m:UploadedFile">
-                      <Border Classes="fileChip">
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
-                          <TextBlock Text="📕" VerticalAlignment="Center"/>
-                          <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center" FontSize="11"/>
-                          <TextBox Grid.Column="2" Width="140" Text="{Binding ChapterInfo}" Watermark="Ch 10, p305-340" FontSize="10"/>
-                          <Button Grid.Column="3" Classes="small"
-                                  Command="{Binding $parent[Window].DataContext.RemoveBookCommand}"
-                                  CommandParameter="{Binding}"
-                                  Content="✕"/>
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
+        <!-- Sidebar Brand Header -->
+        <Border Grid.Row="0" Padding="18,20,18,16">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <!-- Modern Gradient App Icon -->
+            <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12" ClipToBounds="True" VerticalAlignment="Center">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                  <GradientStop Color="#7c3aed" Offset="0"/>
+                  <GradientStop Color="#4f46e5" Offset="1"/>
+                </LinearGradientBrush>
+              </Border.Background>
+              <TextBlock Text="🎓" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
-            <!-- Generation Settings Card -->
-            <Border Classes="card">
-              <StackPanel Spacing="10">
-                <TextBlock Classes="sectionHeader" Text="⚙ Note Generation Settings"/>
+            <!-- App Title & Version Pill -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <TextBlock Grid.Column="0" Text="LectureSmith" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
+                  <TextBlock Text="v3.0.0" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                </Border>
+              </Grid>
+              <TextBlock Text="Study &amp; Notes Studio" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+            </StackPanel>
+          </Grid>
+        </Border>
 
-                <!-- Course -->
-                <StackPanel Spacing="3">
-                  <TextBlock Text="Course Name:" FontSize="11" Foreground="#94a3b8"/>
-                  <ComboBox ItemsSource="{Binding Courses}"
-                            SelectedItem="{Binding SelectedCourse}"
-                            IsEditable="True"
-                            Text="{Binding SelectedCourse}"
-                            PlaceholderText="e.g., Software Engineering or Organic Chemistry"/>
-                </StackPanel>
+        <!-- Navigation Menu Links -->
+        <ScrollViewer Grid.Row="1" Padding="14,8" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="6">
+            <!-- Section Title -->
+            <TextBlock Text="NAVIGATION" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" Margin="8,4,0,4"/>
 
-                <!-- Mode & Language -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                  <StackPanel Grid.Column="0" Spacing="3">
-                    <TextBlock Text="Mode:" FontSize="11" Foreground="#94a3b8"/>
-                    <ComboBox ItemsSource="{Binding LectureModes}" SelectedItem="{Binding SelectedMode}">
-                      <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="m:LectureMode">
-                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LectureModeDisplayConverter}}"/>
-                        </DataTemplate>
-                      </ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Spacing="3">
-                    <TextBlock Text="Language:" FontSize="11" Foreground="#94a3b8"/>
-                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
-                      <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="m:NoteLanguage">
-                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LanguageDisplayConverter}}"/>
-                        </DataTemplate>
-                      </ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-                </Grid>
-
-                <!-- AI Model -->
-                <StackPanel Spacing="3">
-                  <TextBlock Text="AI Model Endpoint:" FontSize="11" Foreground="#94a3b8"/>
-                  <ComboBox ItemsSource="{Binding AvailableModels}" SelectedItem="{Binding SelectedModel}">
-                    <ComboBox.ItemTemplate>
-                      <DataTemplate x:DataType="m:GeminiModelInfo">
-                        <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.ModelDisplayConverter}}"/>
-                      </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                  </ComboBox>
-                  <TextBlock Text="🟢 Free Tier (Google AI Studio)  •  🔴 Paid / Custom Models" FontSize="10" Foreground="#64748b"/>
-                </StackPanel>
-
-                <!-- Slide Processing & Output Format -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                  <StackPanel Grid.Column="0" Spacing="3">
-                    <TextBlock Text="Slide Processing:" FontSize="11" Foreground="#94a3b8"/>
-                    <ComboBox ItemsSource="{Binding SlideProcessingModes}" SelectedItem="{Binding SelectedSlideProcessing}">
-                      <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="m:SlideProcessingMode">
-                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.SlideProcessingDisplayConverter}}"/>
-                        </DataTemplate>
-                      </ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Spacing="3">
-                    <TextBlock Text="Output Format:" FontSize="11" Foreground="#94a3b8"/>
-                    <ComboBox ItemsSource="{Binding OutputFormats}" SelectedItem="{Binding SelectedFormat}">
-                      <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="m:OutputFormat">
-                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.OutputFormatDisplayConverter}}"/>
-                        </DataTemplate>
-                      </ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-                </Grid>
-
-                <!-- AI Thinking Checkbox -->
-                <CheckBox IsChecked="{Binding EnableThinking}" Margin="0,2,0,0">
-                  <StackPanel>
-                    <TextBlock Text="Enable AI Reasoning / Thinking" Foreground="#f1f5f9" FontSize="12"/>
-                    <TextBlock Text="Uses reasoning tokens for deep explanations." Foreground="#64748b" FontSize="10"/>
-                  </StackPanel>
-                </CheckBox>
-
-                <!-- Slide Skipping -->
-                <StackPanel Spacing="4" Margin="0,6,0,0">
-                  <TextBlock Text="Slides to Skip (optional):" FontSize="11" Foreground="#94a3b8"/>
-                  <Button Classes="secondary" Command="{Binding OpenSkipSlidesPopupCommand}"
-                          IsEnabled="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                      <TextBlock Text="📋"/>
-                      <TextBlock Text="Select Slides to Skip"/>
-                    </StackPanel>
-                  </Button>
-                  <TextBlock Text="{Binding SkippedSlidesDisplayText}" FontSize="10" Foreground="#a78bfa"
-                             IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                             Margin="0,2,0,0"/>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
-            <!-- Save Location & Extra Notes -->
-            <Border Classes="card">
-              <StackPanel Spacing="8">
-                <TextBlock Classes="sectionHeader" Text="💾 Export &amp; Custom Instructions"/>
-                <StackPanel Spacing="3">
-                  <TextBlock Text="Save Location:" FontSize="11" Foreground="#94a3b8"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                    <TextBox Text="{Binding OutputPath}" Watermark="Select output folder..."/>
-                    <Button Grid.Column="1" Content="Browse" Classes="secondary" Padding="14,8" Name="BrowseOutputButton" Click="BrowseOutput_Click"/>
-                  </Grid>
-                </StackPanel>
-                <StackPanel Spacing="3" Margin="0,4,0,0">
-                  <TextBlock Text="Extra Instructions (optional):" FontSize="11" Foreground="#94a3b8"/>
-                  <TextBox Text="{Binding ExtraNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="42" MaxHeight="80" Watermark="e.g., 'Include code snippets' or 'Focus on formulas'"/>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
-            <!-- Cache Clean button -->
-            <Button Classes="secondary" Command="{Binding CleanupCacheCommand}" Margin="0,0,0,8">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="🧹"/>
-                <TextBlock Text="Clean Up Temp Cache"/>
-              </StackPanel>
-            </Button>
-            <TextBlock Text="{Binding CleanupStatus}" Foreground="#34d399" FontSize="11" Margin="0,0,0,8" IsVisible="{Binding CleanupStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-
-            <!-- Generate Button -->
-            <Button Classes="primary" Command="{Binding GenerateCommand}" IsEnabled="{Binding CanGenerate}">
-              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <TextBlock Text="⚡" FontSize="16"/>
-                <TextBlock Text="Generate Lecture Notes" FontSize="15"/>
-              </StackPanel>
+            <!-- Workspace Nav Button -->
+            <Button Classes="navItem"
+                    Classes.active="{Binding IsWorkspaceActive}"
+                    Command="{Binding NavigateToWorkspaceCommand}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <TextBlock Text="📊" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Workspace" VerticalAlignment="Center"/>
+              </Grid>
             </Button>
 
-            <!-- Cancel Button -->
-            <Button Classes="danger" Margin="0,6,0,0" IsVisible="{Binding IsGenerating}" Command="{Binding CancelGenerationCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Cancel Generation"/>
-
+            <!-- Settings Nav Button -->
+            <Button Classes="navItem"
+                    Classes.active="{Binding IsSettingsActive}"
+                    Command="{Binding NavigateToSettingsCommand}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <TextBlock Text="⚙️" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Settings" VerticalAlignment="Center"/>
+              </Grid>
+            </Button>
           </StackPanel>
         </ScrollViewer>
 
-        <!-- ═══════ RIGHT WORKSPACE / LIVE PREVIEW ═══════ -->
-        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="10,0,0,0">
+        <!-- Sidebar Bottom: Standalone API Status & Theme Button -->
+        <StackPanel Grid.Row="2" Margin="14,10,14,18" Spacing="10">
 
-          <!-- Workspace Header Bar -->
-          <Border Grid.Row="0" Background="#131525" CornerRadius="12,12,0,0" BorderBrush="#1e2238" BorderThickness="1,1,1,0" Padding="14,10">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <TextBlock Text="📖" FontSize="16"/>
-                <TextBlock Text="Live Note Preview" FontSize="14" FontWeight="Bold" Foreground="#c4b5fd"/>
-              </StackPanel>
-
-              <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                <TextBlock Text="{Binding EstimatedTokenInfo}" FontSize="11" Foreground="#a78bfa" IsVisible="{Binding EstimatedTokenInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-              </StackPanel>
-
-              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <!-- Start Follow-up Session Button -->
-                <Button Classes="secondary" Command="{Binding StartFollowUpSessionCommand}"
-                        IsVisible="{Binding !IsFollowUpSessionActive}"
-                        IsEnabled="{Binding HasLivePreview}"
-                        ToolTip.Tip="Start interactive follow-up Q&amp;A session about the lecture">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="💬"/>
-                    <TextBlock Text="Start Follow-up Session"/>
-                  </StackPanel>
-                </Button>
-
-                <!-- End Follow-up Session Button -->
-                <Button Classes="small" Command="{Binding EndFollowUpSessionCommand}"
-                        IsVisible="{Binding IsFollowUpSessionActive}"
-                        Foreground="#f87171"
-                        ToolTip.Tip="Close chat session and restore full preview">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="✕"/>
-                    <TextBlock Text="End Session"/>
-                  </StackPanel>
-                </Button>
-              </StackPanel>
+          <!-- Standalone API Status (Bigger text, independent element) -->
+          <Border Background="{DynamicResource CardBackgroundSecondary}"
+                  CornerRadius="10"
+                  BorderBrush="{DynamicResource CardBorderBrushSubtle}"
+                  BorderThickness="1"
+                  Padding="14,10">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+              <Border Width="10" Height="10" CornerRadius="5"
+                      Classes.valid="{Binding IsApiKeyValid}"
+                      VerticalAlignment="Center">
+                <Border.Styles>
+                  <Style Selector="Border">
+                    <Setter Property="Background" Value="#ef4444"/>
+                  </Style>
+                  <Style Selector="Border.valid">
+                    <Setter Property="Background" Value="#10b981"/>
+                  </Style>
+                </Border.Styles>
+              </Border>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding ApiKeyStatus}"
+                         FontSize="12.5"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimary}"
+                         TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center"/>
             </Grid>
           </Border>
 
-          <!-- Preview Box Body / Split Chat View -->
-          <Grid Grid.Row="1">
+          <!-- Standalone Theme Button (Clean, no 'Toggle' label) -->
+          <Button Classes="secondary"
+                  Command="{Binding ToggleThemeCommand}"
+                  Padding="12,10"
+                  CornerRadius="10"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="🌙" FontSize="14" VerticalAlignment="Center" IsVisible="{Binding IsDarkMode}"/>
+              <TextBlock Text="☀️" FontSize="14" VerticalAlignment="Center" IsVisible="{Binding !IsDarkMode}"/>
+              <TextBlock Text="Dark Mode" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" IsVisible="{Binding IsDarkMode}"/>
+              <TextBlock Text="Light Mode" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" IsVisible="{Binding !IsDarkMode}"/>
+            </StackPanel>
+          </Button>
 
-            <!-- Mode A: Full Preview (When Follow-up Session is NOT active) -->
-            <Border IsVisible="{Binding !IsFollowUpSessionActive}"
-                    Background="#0c0e1a" BorderBrush="#1e2238" BorderThickness="1" Padding="16">
-              <Grid>
-                <!-- Empty state -->
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding !HasLivePreview}">
-                  <TextBlock Text="📝" FontSize="42" HorizontalAlignment="Center" Foreground="#334155"/>
-                  <TextBlock Text="No notes generated yet" FontSize="15" FontWeight="SemiBold" Foreground="#475569" HorizontalAlignment="Center"/>
-                  <TextBlock Text="Upload lecture slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="#334155" HorizontalAlignment="Center"/>
-                </StackPanel>
+        </StackPanel>
 
-                <!-- Active preview text -->
-                <ScrollViewer IsVisible="{Binding HasLivePreview}" Name="LivePreviewScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                  <SelectableTextBlock Text="{Binding LivePreview}"
-                                       FontFamily="Cascadia Code, Consolas, Courier New, monospace"
-                                       FontSize="12.5"
-                                       LineHeight="20"
-                                       Foreground="#cbd5e1"
-                                       TextWrapping="Wrap"/>
-                </ScrollViewer>
+      </Grid>
+    </Border>
+
+
+    <!-- ════════════════ MAIN CONTENT AREA ════════════════ -->
+    <Grid Grid.Column="1">
+
+      <!-- ════════════════ PAGE 1: WORKSPACE VIEW ════════════════ -->
+      <Grid Grid.Row="1" IsVisible="{Binding IsWorkspaceActive}" RowDefinitions="Auto,*">
+
+        <!-- Top Row: 4 Bento Stat Cards (Analytics Overview Inspired by Dashboard) -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*" ColumnSpacing="14" Margin="24,16,24,12">
+
+          <!-- Card 1: Weekly Token Usage -->
+          <Border Grid.Column="0" Classes="statCard"
+                  Background="{DynamicResource StatWeeklyBg}"
+                  BorderBrush="{DynamicResource StatWeeklyBorder}">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Tokens This Week" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource StatWeeklyLabel}"/>
+                <TextBlock Grid.Column="1" Text="🗓️" FontSize="13"/>
               </Grid>
-            </Border>
+              <TextBlock Text="{Binding WeeklyTokensDisplay}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource StatWeeklyNumber}"/>
+              <TextBlock Text="Weekly AI Token Consumption" FontSize="10" Foreground="{DynamicResource StatWeeklyLabel}" Opacity="0.85"/>
+            </StackPanel>
+          </Border>
 
-            <!-- Mode B: Split View (When Follow-up Session IS active: Top = Preview, Bottom = Chat) -->
-            <Grid IsVisible="{Binding IsFollowUpSessionActive}">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="1*" MinHeight="80"/>
-                <RowDefinition Height="6"/>
-                <RowDefinition Height="2*" MinHeight="200"/>
-              </Grid.RowDefinitions>
+          <!-- Card 2: Monthly Token Usage -->
+          <Border Grid.Column="1" Classes="statCard"
+                  Background="{DynamicResource StatMonthlyBg}"
+                  BorderBrush="{DynamicResource StatMonthlyBorder}">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Tokens This Month" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource StatMonthlyLabel}"/>
+                <TextBlock Grid.Column="1" Text="📅" FontSize="13"/>
+              </Grid>
+              <TextBlock Text="{Binding MonthlyTokensDisplay}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource StatMonthlyNumber}"/>
+              <TextBlock Text="Monthly AI Usage Cycle" FontSize="10" Foreground="{DynamicResource StatMonthlyLabel}" Opacity="0.85"/>
+            </StackPanel>
+          </Border>
 
-              <!-- Top Half: Live Note Preview -->
-              <Border Grid.Row="0" Background="#0c0e1a" BorderBrush="#1e2238" BorderThickness="1,1,1,0" Padding="14">
-                <Grid RowDefinitions="Auto,*">
-                  <Border Grid.Row="0" Background="#15172b" CornerRadius="6" Padding="8,4" Margin="0,0,0,8">
-                    <TextBlock Text="📄 Generated Lecture Notes (Reference)" FontSize="11" FontWeight="SemiBold" Foreground="#a78bfa"/>
-                  </Border>
-                  <ScrollViewer Grid.Row="1" Name="LivePreviewScrollerSplit" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <SelectableTextBlock Text="{Binding LivePreview}"
-                                         FontFamily="Cascadia Code, Consolas, Courier New, monospace"
-                                         FontSize="12"
-                                         LineHeight="19"
-                                         Foreground="#cbd5e1"
-                                         TextWrapping="Wrap"/>
-                  </ScrollViewer>
-                </Grid>
-              </Border>
+          <!-- Card 3: Active AI Model Engine -->
+          <Border Grid.Column="2" Classes="statCard"
+                  Background="{DynamicResource StatModelBg}"
+                  BorderBrush="{DynamicResource StatModelBorder}">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="AI Engine Model" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource StatModelLabel}"/>
+                <TextBlock Grid.Column="1" Text="✨" FontSize="13"/>
+              </Grid>
+              <TextBlock Text="{Binding ActiveModelDisplay}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource StatModelNumber}" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding ActiveModelSubtext}" FontSize="10" Foreground="{DynamicResource StatModelLabel}" Opacity="0.9"/>
+            </StackPanel>
+          </Border>
 
-              <!-- Draggable Resizer Bar -->
-              <GridSplitter Grid.Row="1" Background="#1e2238" ResizeDirection="Rows" ShowsPreview="True" Cursor="SizeNorthSouth"/>
-
-              <!-- Bottom Half: Follow-up Chat Box -->
-              <Border Grid.Row="2" Background="#101322" BorderBrush="#1e2238" BorderThickness="1,0,1,1">
-                <Grid RowDefinitions="Auto,*,Auto">
-
-                  <!-- Chat Sub-Header -->
-                  <Border Grid.Row="0" Background="#15172b" BorderBrush="#2a2e4a" BorderThickness="0,0,0,1" Padding="12,7">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="💬" FontSize="13"/>
-                        <TextBlock Text="Follow-up Questions &amp; Discussion" FontSize="12" FontWeight="Bold" Foreground="#c4b5fd"/>
-                      </StackPanel>
-                      <TextBlock Grid.Column="1" Text="AI maintains context from the lecture notes" FontSize="10" Foreground="#64748b" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                      <ProgressBar Grid.Column="2" IsVisible="{Binding IsSendingFollowUp}" IsIndeterminate="True" Width="80" Height="4" Foreground="#7c3aed" VerticalAlignment="Center"/>
-                    </Grid>
-                  </Border>
-
-                  <!-- Chat Message History -->
-                  <ScrollViewer Grid.Row="1" Name="ChatScroller" Padding="12,8" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding ChatMessages}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="m:ChatMessage">
-                          <Grid Margin="0,6">
-                            <!-- User Message (Right-aligned purple bubble) -->
-                            <Border IsVisible="{Binding IsUser}"
-                                    HorizontalAlignment="Right"
-                                    Background="#7c3aed"
-                                    CornerRadius="12,12,2,12"
-                                    Padding="12,8"
-                                    MaxWidth="550">
-                              <SelectableTextBlock Text="{Binding Content}"
-                                                   Foreground="White"
-                                                   FontSize="12"
-                                                   TextWrapping="Wrap"/>
-                            </Border>
-
-                            <!-- AI Message (Left-aligned slate bubble with rich Markdown formatting) -->
-                            <Border IsVisible="{Binding !IsUser}"
-                                    HorizontalAlignment="Left"
-                                    Background="#1c1f36"
-                                    BorderBrush="#2d3254"
-                                    BorderThickness="1"
-                                    CornerRadius="12,12,12,2"
-                                    Padding="14,10"
-                                    MaxWidth="680">
-                              <StackPanel Spacing="6">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                  <TextBlock Text="🤖 LectureSmith Assistant" FontSize="10" FontWeight="Bold" Foreground="#a78bfa"/>
-                                </StackPanel>
-                                <SelectableTextBlock Text="{Binding Content}"
-                                                     Foreground="#e2e8f0"
-                                                     FontSize="12"
-                                                     LineHeight="19"
-                                                     TextWrapping="Wrap"/>
-                              </StackPanel>
-                            </Border>
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </ScrollViewer>
-
-                  <!-- Chat Input Bar -->
-                  <Border Grid.Row="2" Background="#15172b" BorderBrush="#2a2e4a" BorderThickness="0,1,0,0" Padding="12,10">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBox Grid.Column="0"
-                               Text="{Binding FollowUpInput}"
-                               Watermark="Ask a follow-up question about the lecture... (Press Enter to send)"
-                               FontSize="12"
-                               CornerRadius="8"
-                               Padding="12,10"
-                               KeyDown="FollowUpInput_KeyDown"
-                               IsEnabled="{Binding !IsSendingFollowUp}"/>
-                      <Button Grid.Column="1"
-                              Classes="primary"
-                              Command="{Binding SendFollowUpCommand}"
-                              IsEnabled="{Binding !IsSendingFollowUp}"
-                              Padding="18,10">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <TextBlock Text="Send"/>
-                          <TextBlock Text="➤" FontSize="10"/>
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-                  </Border>
-
-                </Grid>
-              </Border>
-
-            </Grid>
-          </Grid>
-
-          <!-- Workspace Footer / Status Bar -->
-          <Border Grid.Row="2" Background="#131525" CornerRadius="0,0,12,12" BorderBrush="#1e2238" BorderThickness="1,0,1,1" Padding="14,10">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Spacing="4">
-                <ProgressBar IsVisible="{Binding IsGenerating}" Value="{Binding ProgressPercent}" Maximum="100" Height="6" Foreground="#7c3aed" Background="#1e2238" CornerRadius="3"/>
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="{Binding ProgressMessage}" FontSize="11" Foreground="#94a3b8"/>
-                  <TextBlock Grid.Column="1" Text="{Binding LivePreview.Length, StringFormat='{}{0:N0} characters'}" FontSize="10" Foreground="#64748b"/>
-                </Grid>
-                <TextBlock Text="{Binding StatusMessage}" FontSize="11" TextWrapping="Wrap" Classes.error="{Binding IsStatusError}" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                  <TextBlock.Styles>
-                    <Style Selector="TextBlock">
-                      <Setter Property="Foreground" Value="#34d399"/>
-                    </Style>
-                    <Style Selector="TextBlock.error">
-                      <Setter Property="Foreground" Value="#f87171"/>
-                    </Style>
-                  </TextBlock.Styles>
-                </TextBlock>
-              </StackPanel>
-            </Grid>
+          <!-- Card 4: Workspace Studio Engine Status -->
+          <Border Grid.Column="3" Classes="statCard"
+                  Background="{DynamicResource StatStatusBg}"
+                  BorderBrush="{DynamicResource StatStatusBorder}">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Studio Status" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource StatStatusLabel}"/>
+                <TextBlock Grid.Column="1" Text="⚡" FontSize="13"/>
+              </Grid>
+              <TextBlock Text="{Binding ProgressMessage}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource StatStatusNumber}" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="OCR &amp; Gemini Studio Active" FontSize="10" Foreground="{DynamicResource StatStatusLabel}" Opacity="0.85"/>
+            </StackPanel>
           </Border>
 
         </Grid>
 
+        <!-- Main Workspace Split Columns -->
+        <Grid Grid.Row="1" ColumnDefinitions="430,*" ColumnSpacing="18" Margin="24,0,24,18">
+
+          <!-- ═══════ LEFT COLUMN: INPUTS & CONFIGURATION HUB ═══════ -->
+          <ScrollViewer Grid.Column="0" Name="LeftPanelScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="0">
+
+              <!-- Bento Card 1: Lecture Materials (Upload) -->
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="sectionHeader" Text="📎 Lecture Materials"/>
+
+                  <!-- Slides Dropzone -->
+                  <TextBlock Text="Lecture Slides PDF (required):" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                  <Border Classes="dropzone" Name="SlidesDropZone"
+                          DragDrop.AllowDrop="True"
+                          IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNull}}"
+                          Tapped="SlidesDropZone_Tapped">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                      <TextBlock Text="📄 Drag &amp; drop slides PDF here" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="or click to browse from disk" HorizontalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                    </StackPanel>
+                  </Border>
+
+                  <!-- Slides File Chip -->
+                  <Border Classes="fileChip" IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <TextBlock Text="📑" VerticalAlignment="Center"/>
+                      <TextBlock Grid.Column="1" Text="{Binding SlidesFile.FileName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" Margin="8,0" FontSize="12"/>
+                      <Button Grid.Column="2" Classes="small" Command="{Binding RemoveSlidesCommand}" Content="✕"/>
+                    </Grid>
+                  </Border>
+
+                  <!-- Books Dropzone -->
+                  <TextBlock Text="Reference Books (optional):" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,4,0,0"/>
+                  <Border Classes="dropzone" Name="BooksDropZone"
+                          DragDrop.AllowDrop="True"
+                          Tapped="BooksDropZone_Tapped">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                      <TextBlock Text="📚 Drag &amp; drop reference book PDFs" HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="or click to browse multiple books" HorizontalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                    </StackPanel>
+                  </Border>
+
+                  <!-- Book Files List -->
+                  <ItemsControl ItemsSource="{Binding BookFiles}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="m:UploadedFile">
+                        <Border Classes="fileChip">
+                          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
+                            <TextBlock Text="📕" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" FontSize="11"/>
+                            <TextBox Grid.Column="2" Width="140" Text="{Binding ChapterInfo}" Watermark="Ch 10, p305-340" FontSize="10"/>
+                            <Button Grid.Column="3" Classes="small"
+                                    Command="{Binding $parent[Window].DataContext.RemoveBookCommand}"
+                                    CommandParameter="{Binding}"
+                                    Content="✕"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
+              <!-- Bento Card 2: Generation Engine & Parameters -->
+              <Border Classes="card">
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="sectionHeader" Text="⚙ Note Generation Engine"/>
+
+                  <!-- Course Name -->
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Course Name:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                    <ComboBox ItemsSource="{Binding Courses}"
+                              SelectedItem="{Binding SelectedCourse}"
+                              IsEditable="True"
+                              Text="{Binding SelectedCourse}"
+                              PlaceholderText="e.g., Software Engineering or Organic Chemistry">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="✕" FontSize="10" Padding="4,2"
+                                    Background="Transparent" Foreground="{DynamicResource TextMuted}"
+                                    BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"
+                                    Command="{Binding $parent[Window].DataContext.RemoveCourseCommand}"
+                                    CommandParameter="{Binding}"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+
+                  <!-- Mode & Language Grid -->
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <StackPanel Grid.Column="0" Spacing="3">
+                      <TextBlock Text="Mode:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                      <ComboBox ItemsSource="{Binding LectureModes}" SelectedItem="{Binding SelectedMode}">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:LectureMode">
+                            <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LectureModeDisplayConverter}}"/>
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="3">
+                      <TextBlock Text="Language:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                      <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:NoteLanguage">
+                            <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.LanguageDisplayConverter}}"/>
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- AI Model Selector -->
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="AI Model Endpoint:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                    <ComboBox ItemsSource="{Binding AvailableModels}" SelectedItem="{Binding SelectedModel}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:GeminiModelInfo">
+                          <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.ModelDisplayConverter}}"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="🟢 Free Tier (Google AI Studio)  •  🔴 Custom / Paid Endpoints" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                  </StackPanel>
+
+                  <!-- Slide Processing & Output Format Grid -->
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <StackPanel Grid.Column="0" Spacing="3">
+                      <TextBlock Text="Slide Processing:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                      <ComboBox ItemsSource="{Binding SlideProcessingModes}" SelectedItem="{Binding SelectedSlideProcessing}">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:SlideProcessingMode">
+                            <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.SlideProcessingDisplayConverter}}"/>
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="3">
+                      <TextBlock Text="Output Format:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                      <ComboBox ItemsSource="{Binding OutputFormats}" SelectedItem="{Binding SelectedFormat}">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:OutputFormat">
+                            <TextBlock Text="{Binding Converter={x:Static vm:MainWindowViewModel.OutputFormatDisplayConverter}}"/>
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- AI Reasoning Checkbox -->
+                  <CheckBox IsChecked="{Binding EnableThinking}" Margin="0,2,0,0">
+                    <StackPanel>
+                      <TextBlock Text="Enable AI Reasoning / Thinking" Foreground="{DynamicResource TextPrimary}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="Uses reasoning budget for deep explanations and logic." Foreground="{DynamicResource TextMuted}" FontSize="10"/>
+                    </StackPanel>
+                  </CheckBox>
+
+                  <!-- Slide Skipping Button -->
+                  <StackPanel Spacing="6" Margin="0,4,0,0">
+                    <TextBlock Text="Slides to Skip (optional):" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                    <Button Classes="secondary" Command="{Binding OpenSkipSlidesPopupCommand}"
+                            IsEnabled="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Padding="14,9">
+                      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock Text="📋" VerticalAlignment="Center"/>
+                        <TextBlock Text="Select Slides to Skip" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                    <Border Background="{DynamicResource AccentSubtleBg}"
+                            BorderBrush="{DynamicResource AccentSubtleBorder}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            Margin="0,2,0,0"
+                            HorizontalAlignment="Stretch"
+                            IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="{Binding SkippedSlidesDisplayText}"
+                                 FontSize="11"
+                                 Foreground="{DynamicResource AccentSubtleText}"
+                                 FontWeight="SemiBold"
+                                 TextWrapping="Wrap"
+                                 HorizontalAlignment="Center"/>
+                    </Border>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Bento Card 3: Export & Custom Instructions -->
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="sectionHeader" Text="💾 Export &amp; Custom Instructions"/>
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Save Location:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                      <TextBox Text="{Binding OutputPath}" Watermark="Select output folder..."/>
+                      <Button Grid.Column="1" Content="Browse" Classes="secondary" Padding="14,8" Name="BrowseOutputButton" Click="BrowseOutput_Click"/>
+                    </Grid>
+                  </StackPanel>
+                  <StackPanel Spacing="3" Margin="0,4,0,0">
+                    <TextBlock Text="Extra Instructions (optional):" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                    <TextBox Text="{Binding ExtraNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="44" MaxHeight="80" Watermark="e.g., 'Include code snippets' or 'Focus heavily on formulas'"/>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Action Buttons Hub -->
+              <Button Classes="secondary" Command="{Binding CleanupCacheCommand}"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                      Padding="14,10" Margin="0,0,0,6">
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                  <TextBlock Text="🧹" VerticalAlignment="Center"/>
+                  <TextBlock Text="Clean Up Temp Cache" FontWeight="Medium" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+              <TextBlock Text="{Binding CleanupStatus}" Foreground="{DynamicResource SuccessSubtleText}" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,8" TextWrapping="Wrap" IsVisible="{Binding CleanupStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+              <!-- Primary Generate Button -->
+              <Button Classes="primary" Command="{Binding GenerateCommand}" IsEnabled="{Binding CanGenerate}" Height="48">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" HorizontalAlignment="Center">
+                  <TextBlock Text="⚡" FontSize="18" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="Generate Lecture Notes" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                </Grid>
+              </Button>
+
+              <!-- Cancel Button -->
+              <Button Classes="danger" Margin="0,6,0,0" IsVisible="{Binding IsGenerating}" Command="{Binding CancelGenerationCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Cancel Generation"/>
+
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- ═══════ RIGHT COLUMN: LIVE PREVIEW & INTERACTIVE STUDIO ═══════ -->
+          <Border Grid.Column="1"
+                  Background="{DynamicResource CardBackground}"
+                  CornerRadius="16"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1">
+            <Grid RowDefinitions="Auto,*,Auto">
+
+              <!-- Studio Sub-Header -->
+              <Border Grid.Row="0"
+                      Background="{DynamicResource CardBackgroundSecondary}"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,0,0,1"
+                      CornerRadius="15,15,0,0"
+                      Padding="16,12">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="📖" FontSize="16"/>
+                    <TextBlock Text="Live Note Preview" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                  </StackPanel>
+
+                  <TextBlock Grid.Column="1" Text="{Binding EstimatedTokenInfo}" FontSize="11" Foreground="{DynamicResource AccentSubtleText}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding EstimatedTokenInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <!-- Start Follow-up Session Button -->
+                    <Button Classes="secondary" Command="{Binding StartFollowUpSessionCommand}"
+                            IsVisible="{Binding !IsFollowUpSessionActive}"
+                            IsEnabled="{Binding HasLivePreview}"
+                            ToolTip.Tip="Start interactive follow-up Q&amp;A session about the lecture">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="💬"/>
+                        <TextBlock Text="Follow-up Chat"/>
+                      </StackPanel>
+                    </Button>
+
+                    <!-- End Follow-up Session Button -->
+                    <Button Classes="small" Command="{Binding EndFollowUpSessionCommand}"
+                            IsVisible="{Binding IsFollowUpSessionActive}"
+                            Foreground="{DynamicResource DangerBrush}"
+                            ToolTip.Tip="Close chat session and restore full preview">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="✕"/>
+                        <TextBlock Text="End Chat"/>
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <!-- Studio Body (Full Preview OR Split Chat) -->
+              <Grid Grid.Row="1">
+
+                <!-- Mode A: Full Preview (When Follow-up Session is NOT active) -->
+                <Border IsVisible="{Binding !IsFollowUpSessionActive}"
+                        Background="{DynamicResource PreviewBackground}"
+                        Padding="18">
+                  <Grid>
+                    <!-- Empty State Illustration -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding !HasLivePreview}">
+                      <TextBlock Text="📝" FontSize="46" HorizontalAlignment="Center" Opacity="0.4"/>
+                      <TextBlock Text="No lecture notes generated yet" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
+                      <TextBlock Text="Upload lecture slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Active Markdown Preview Text -->
+                    <ScrollViewer IsVisible="{Binding HasLivePreview}" Name="LivePreviewScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                      <SelectableTextBlock Text="{Binding LivePreview}"
+                                           FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                           FontSize="12.5"
+                                           LineHeight="21"
+                                           Foreground="{DynamicResource PreviewText}"
+                                           TextWrapping="Wrap"/>
+                    </ScrollViewer>
+                  </Grid>
+                </Border>
+
+                <!-- Mode B: Split View (When Follow-up Session IS active) -->
+                <Grid IsVisible="{Binding IsFollowUpSessionActive}">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="1*" MinHeight="80"/>
+                    <RowDefinition Height="6"/>
+                    <RowDefinition Height="2*" MinHeight="200"/>
+                  </Grid.RowDefinitions>
+
+                  <!-- Top Half: Note Preview Reference -->
+                  <Border Grid.Row="0" Background="{DynamicResource PreviewBackground}" Padding="14">
+                    <Grid RowDefinitions="Auto,*">
+                      <Border Grid.Row="0" Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="6" Padding="8,4" Margin="0,0,0,8">
+                        <TextBlock Text="📄 Generated Lecture Notes (Context Reference)" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}"/>
+                      </Border>
+                      <ScrollViewer Grid.Row="1" Name="LivePreviewScrollerSplit" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <SelectableTextBlock Text="{Binding LivePreview}"
+                                             FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                             FontSize="12"
+                                             LineHeight="19"
+                                             Foreground="{DynamicResource PreviewText}"
+                                             TextWrapping="Wrap"/>
+                      </ScrollViewer>
+                    </Grid>
+                  </Border>
+
+                  <!-- Draggable Resizer Bar -->
+                  <GridSplitter Grid.Row="1" Background="{DynamicResource CardBorderBrush}" ResizeDirection="Rows" ShowsPreview="True" Cursor="SizeNorthSouth"/>
+
+                  <!-- Bottom Half: Follow-up Chat Box -->
+                  <Border Grid.Row="2" Background="{DynamicResource CardBackground}">
+                    <Grid RowDefinitions="Auto,*,Auto">
+
+                      <!-- Chat Sub-Header -->
+                      <Border Grid.Row="0" Background="{DynamicResource CardBackgroundSecondary}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="12,7">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="💬" FontSize="13"/>
+                            <TextBlock Text="Follow-up Questions &amp; Discussion" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" Text="AI assistant retains complete context from generated notes" FontSize="10" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          <ProgressBar Grid.Column="2" IsVisible="{Binding IsSendingFollowUp}" IsIndeterminate="True" Width="80" Height="4" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                        </Grid>
+                      </Border>
+
+                      <!-- Chat Message History -->
+                      <ScrollViewer Grid.Row="1" Name="ChatScroller" Padding="14,10" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding ChatMessages}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:ChatMessage">
+                              <Grid Margin="0,6">
+                                <!-- User Message -->
+                                <Border IsVisible="{Binding IsUser}"
+                                        HorizontalAlignment="Right"
+                                        Background="{DynamicResource ChatUserBubbleBg}"
+                                        CornerRadius="14,14,2,14"
+                                        Padding="12,8"
+                                        MaxWidth="550">
+                                  <SelectableTextBlock Text="{Binding Content}"
+                                                       Foreground="{DynamicResource ChatUserBubbleFg}"
+                                                       FontSize="12.5"
+                                                       TextWrapping="Wrap"/>
+                                </Border>
+
+                                <!-- AI Message -->
+                                <Border IsVisible="{Binding !IsUser}"
+                                        HorizontalAlignment="Left"
+                                        Background="{DynamicResource ChatAiBubbleBg}"
+                                        BorderBrush="{DynamicResource ChatAiBubbleBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="14,14,14,2"
+                                        Padding="14,10"
+                                        MaxWidth="680">
+                                  <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                      <TextBlock Text="🤖 LectureSmith Assistant" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                                    </StackPanel>
+                                    <SelectableTextBlock Text="{Binding Content}"
+                                                         Foreground="{DynamicResource ChatAiBubbleFg}"
+                                                         FontSize="12"
+                                                         LineHeight="19"
+                                                         TextWrapping="Wrap"/>
+                                  </StackPanel>
+                                </Border>
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+
+                      <!-- Chat Input Bar -->
+                      <Border Grid.Row="2" Background="{DynamicResource CardBackgroundSecondary}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0" Padding="12,10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                          <TextBox Grid.Column="0"
+                                   Text="{Binding FollowUpInput}"
+                                   Watermark="Ask a follow-up question about the lecture... (Press Enter to send)"
+                                   FontSize="12"
+                                   CornerRadius="8"
+                                   Padding="12,10"
+                                   KeyDown="FollowUpInput_KeyDown"
+                                   IsEnabled="{Binding !IsSendingFollowUp}"/>
+                          <Button Grid.Column="1"
+                                  Classes="primary"
+                                  Command="{Binding SendFollowUpCommand}"
+                                  IsEnabled="{Binding !IsSendingFollowUp}"
+                                  Padding="18,10">
+                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6" VerticalAlignment="Center">
+                              <TextBlock Grid.Column="0" Text="Send" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                              <TextBlock Grid.Column="1" Text="➤" FontSize="11" VerticalAlignment="Center"/>
+                            </Grid>
+                          </Button>
+                        </Grid>
+                      </Border>
+
+                    </Grid>
+                  </Border>
+
+                </Grid>
+              </Grid>
+
+              <!-- Workspace Footer / Status Bar -->
+              <Border Grid.Row="2"
+                      Background="{DynamicResource CardBackgroundSecondary}"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,1,0,0"
+                      CornerRadius="0,0,15,15"
+                      Padding="14,10">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="4">
+                    <ProgressBar IsVisible="{Binding IsGenerating}" Value="{Binding ProgressPercent}" Maximum="100" Height="6" Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource CardBorderBrush}" CornerRadius="3"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="{Binding ProgressMessage}" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                      <TextBlock Grid.Column="1" Text="{Binding LivePreview.Length, StringFormat='{}{0:N0} characters'}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                    </Grid>
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="11" TextWrapping="Wrap" Classes.error="{Binding IsStatusError}" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock.Styles>
+                        <Style Selector="TextBlock">
+                          <Setter Property="Foreground" Value="{DynamicResource SuccessSubtleText}"/>
+                        </Style>
+                        <Style Selector="TextBlock.error">
+                          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                        </Style>
+                      </TextBlock.Styles>
+                    </TextBlock>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+            </Grid>
+          </Border>
+
+        </Grid>
       </Grid>
 
-      <!-- ════════════════ PAGE 2: DEDICATED API KEY SETTINGS VIEW ════════════════ -->
-      <ScrollViewer IsVisible="{Binding ShowSettings}" Margin="32,24">
-        <StackPanel Spacing="20" MaxWidth="700" HorizontalAlignment="Left">
+      <!-- ════════════════ PAGE 2: DEDICATED SETTINGS VIEW ════════════════ -->
+      <ScrollViewer Grid.Row="1" IsVisible="{Binding IsSettingsActive}" Margin="32,20">
+        <StackPanel Spacing="20" MaxWidth="740" HorizontalAlignment="Left">
 
-          <!-- Top Left Back Arrow Header -->
+          <!-- Top Back Arrow Header -->
           <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-            <Button Classes="backBtn" Command="{Binding CloseSettingsCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="←" FontSize="16" FontWeight="Bold"/>
-                <TextBlock Text="Back to Workspace" FontSize="13" FontWeight="SemiBold"/>
-              </StackPanel>
+            <Button Classes="backBtn" Command="{Binding NavigateToWorkspaceCommand}" Padding="14,8">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                <TextBlock Grid.Column="0" Text="←" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                <TextBlock Grid.Column="1" Text="Back to Workspace" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              </Grid>
             </Button>
-            <TextBlock Text="🔑 Gemini API Key Settings" FontSize="20" FontWeight="Bold" Foreground="#c4b5fd" VerticalAlignment="Center"/>
+            <TextBlock Text="⚙ Settings &amp; Maintenance" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
           </StackPanel>
 
-          <!-- API Key Settings Card -->
+          <!-- Bento Card 1: API Key Settings -->
           <Border Classes="card" Padding="24">
             <StackPanel Spacing="14">
-              <TextBlock Classes="sectionHeader" Text="Google AI Studio API Key Configuration"/>
-              <TextBlock Text="Paste your Gemini API key below. Keys are saved securely in your local AppData directory and never sent to any third-party server." FontSize="12.5" Foreground="#94a3b8" TextWrapping="Wrap" LineHeight="20"/>
+              <TextBlock Classes="sectionHeader" Text="🔑 Google AI Studio API Key Configuration"/>
+              <TextBlock Text="Paste your Gemini API key below. Keys are stored securely in your local AppData directory and never transmitted to third parties." FontSize="12.5" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" LineHeight="20"/>
 
               <StackPanel Spacing="6" Margin="0,6,0,0">
-                <TextBlock Text="API Key:" FontSize="12" FontWeight="SemiBold" Foreground="#c4b5fd"/>
+                <TextBlock Text="API Key:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                   <TextBox Text="{Binding ApiKey}" PasswordChar="•" Watermark="Enter your Gemini API key (AIzaSy...)"/>
                   <Button Grid.Column="1" Command="{Binding SaveApiKeyCommand}" Content="Save &amp; Validate" Classes="primary" Padding="18,10"/>
                 </Grid>
               </StackPanel>
 
-              <Border Background="#1e1b4b" CornerRadius="8" Padding="14,10" BorderBrush="#312e81" BorderThickness="1" Margin="0,4,0,0">
+              <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="8" Padding="14,10" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Margin="0,4,0,0">
                 <StackPanel Spacing="4">
-                  <TextBlock Text="Status:" FontSize="11" Foreground="#a78bfa" FontWeight="Bold"/>
-                  <TextBlock Text="{Binding ApiKeyStatus}" FontSize="12" Foreground="#38bdf8"/>
+                  <TextBlock Text="Current API Status:" FontSize="11" Foreground="{DynamicResource TextMuted}" FontWeight="Bold"/>
+                  <TextBlock Text="{Binding ApiKeyStatus}" FontSize="12" Foreground="{DynamicResource AccentSubtleText}" FontWeight="SemiBold"/>
                 </StackPanel>
               </Border>
 
-              <TextBlock Text="Need a free Gemini API key? Get one at: https://aistudio.google.com" FontSize="11" Foreground="#64748b" Margin="0,4,0,0"/>
+              <TextBlock Text="Need a free Gemini API key? Get one instantly at: https://aistudio.google.com" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,4,0,0"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Bento Card 2: Appearance & Theme -->
+          <Border Classes="card" Padding="24">
+            <StackPanel Spacing="14">
+              <TextBlock Classes="sectionHeader" Text="🎨 Appearance &amp; Visual Theme"/>
+              <TextBlock Text="Select your preferred color theme. Changes apply instantly across the entire interface and are preserved across restarts." FontSize="12.5" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" LineHeight="20"/>
+
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="0,6,0,0">
+                <!-- Dark Mode Option -->
+                <Border Grid.Column="0" Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="14" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <TextBlock Text="🌙" FontSize="22" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="Dark Mode" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+                      <TextBlock Text="Deep slate &amp; glowing violet accents" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+
+                <!-- Light Mode Option -->
+                <Border Grid.Column="1" Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="14" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <TextBlock Text="☀️" FontSize="22" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="Light Mode" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+                      <TextBlock Text="Crisp paper &amp; modern indigo accents" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </Grid>
+
+              <Button Classes="secondary" Command="{Binding ToggleThemeCommand}" HorizontalAlignment="Left" Padding="18,8" Margin="0,4,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Switch to" FontSize="12"/>
+                  <TextBlock Text="Light Mode" FontSize="12" FontWeight="Bold" IsVisible="{Binding IsDarkMode}"/>
+                  <TextBlock Text="Dark Mode" FontSize="12" FontWeight="Bold" IsVisible="{Binding !IsDarkMode}"/>
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </Border>
+
+          <!-- Bento Card 3: Application Data & Uninstaller -->
+          <Border Classes="card" Padding="24">
+            <StackPanel Spacing="16">
+              <TextBlock Classes="sectionHeader" Text="🗑 Application Data &amp; Maintenance"/>
+              <TextBlock Text="Manage stored cache data or completely wipe LectureSmith and all associated files from this computer."
+                         FontSize="12.5" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" LineHeight="20"/>
+
+              <!-- Status Feedback -->
+              <TextBlock Text="{Binding WipeStatusMessage}"
+                         Foreground="{DynamicResource SuccessSubtleText}" FontSize="12" FontWeight="SemiBold"
+                         IsVisible="{Binding WipeStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+              <!-- Reset Data Section -->
+              <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="16" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
+                    <TextBlock Text="Reset Stored Data &amp; Caches" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock Text="Wipes saved API keys, course history, token logs, and temp slide caches." FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+                  </StackPanel>
+
+                  <Button Grid.Column="1" Classes="secondary" Command="{Binding RequestWipeDataCommand}"
+                          Content="Reset Data" Padding="16,8" VerticalAlignment="Center"
+                          IsVisible="{Binding !ShowWipeConfirmation}"/>
+
+                  <!-- Wipe Confirmation Box -->
+                  <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0" Background="{DynamicResource DangerSubtleBg}" CornerRadius="8" Padding="12" BorderBrush="{DynamicResource DangerSubtleBorder}" BorderThickness="1"
+                          IsVisible="{Binding ShowWipeConfirmation}">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                      <TextBlock Text="⚠️ Wipe all local settings, history, and caches?" FontSize="12" Foreground="{DynamicResource DangerSubtleText}" VerticalAlignment="Center"/>
+                      <Button Grid.Column="1" Classes="danger" Command="{Binding ConfirmWipeDataCommand}" Content="Yes, Wipe All" Padding="14,6"/>
+                      <Button Grid.Column="2" Classes="secondary" Command="{Binding CancelWipeDataCommand}" Content="Cancel" Padding="14,6"/>
+                    </Grid>
+                  </Border>
+                </Grid>
+              </Border>
+
+              <!-- Self-Uninstall Section -->
+              <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="16" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
+                    <TextBlock Text="Complete Application Uninstall" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource DangerBrush}"/>
+                    <TextBlock Text="Wipes all AppData, downloaded OCR models, temporary caches, and deletes LectureSmith.exe." FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+                  </StackPanel>
+
+                  <Button Grid.Column="1" Classes="danger" Command="{Binding RequestUninstallCommand}"
+                          Content="Uninstall App" Padding="16,8" VerticalAlignment="Center"
+                          IsVisible="{Binding !ShowUninstallConfirmation}"/>
+
+                  <!-- Uninstall Confirmation Box -->
+                  <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0" Background="{DynamicResource DangerSubtleBg}" CornerRadius="8" Padding="14" BorderBrush="{DynamicResource DangerSubtleBorder}" BorderThickness="1"
+                          IsVisible="{Binding ShowUninstallConfirmation}">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                      <TextBlock Text="🚨 Permanently wipe all files and delete LectureSmith.exe?" FontSize="12" Foreground="{DynamicResource DangerSubtleText}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                      <Button Grid.Column="1" Classes="danger" Command="{Binding ConfirmUninstallCommand}" Content="Confirm Uninstall" Padding="14,6"/>
+                      <Button Grid.Column="2" Classes="secondary" Command="{Binding CancelUninstallCommand}" Content="Cancel" Padding="14,6"/>
+                    </Grid>
+                  </Border>
+                </Grid>
+              </Border>
+
             </StackPanel>
           </Border>
 
@@ -700,17 +1091,20 @@
       </ScrollViewer>
 
     </Grid>
+    </Grid>
 
     <!-- ════════════════ MODAL: SELECT SLIDES TO SKIP ════════════════ -->
-    <Grid Grid.RowSpan="3" IsVisible="{Binding ShowSkipSlidesPopup}">
-      <!-- Dimmed Backdrop (Click to close) -->
-      <Button Background="#000000" Opacity="0.75" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+    <Grid Grid.RowSpan="2" IsVisible="{Binding ShowSkipSlidesPopup}">
+      <!-- Dimmed Backdrop -->
+      <Button Background="{DynamicResource ModalBackdrop}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
               Command="{Binding CloseSkipSlidesPopupCommand}" Padding="0" BorderThickness="0"/>
 
       <!-- Modal Dialog Window -->
       <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-              Background="#131525" BorderBrush="#312e81" BorderThickness="1.5"
-              CornerRadius="14" Padding="24"
+              Background="{DynamicResource ModalBackground}"
+              BorderBrush="{DynamicResource ModalBorder}"
+              BorderThickness="1.5"
+              CornerRadius="16" Padding="24"
               Width="880" MaxHeight="680">
         <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
 
@@ -718,7 +1112,7 @@
           <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
               <TextBlock Text="📋" FontSize="20"/>
-              <TextBlock Text="Select Slides to Skip" FontSize="18" FontWeight="Bold" Foreground="#c4b5fd"/>
+              <TextBlock Text="Select Slides to Skip" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
             </StackPanel>
             <Button Grid.Column="1" Classes="small" Command="{Binding CloseSkipSlidesPopupCommand}" Content="✕" FontSize="16" Padding="8,4"/>
           </Grid>
@@ -726,7 +1120,7 @@
           <!-- Explanation Subtext -->
           <TextBlock Grid.Row="1"
                      Text="Click on the slides you want to skip. Skipped slides are still sent to the AI for lecture context, but will appear as 'Skipped' in your final generated notes."
-                     FontSize="12" Foreground="#94a3b8" TextWrapping="Wrap" LineHeight="18"/>
+                     FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" LineHeight="18"/>
 
           <!-- Thumbnails Grid in ScrollViewer -->
           <ScrollViewer Grid.Row="2" MaxHeight="450" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -745,28 +1139,28 @@
                       <!-- Top Bar of Slide Card -->
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0" Text="{Binding SlideNumber, StringFormat='{}Slide {0}'}"
-                                   FontSize="12" FontWeight="Bold" Foreground="#e2e8f0" VerticalAlignment="Center"/>
+                                   FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
 
                         <!-- Status Badges -->
-                        <Border Grid.Column="1" Background="#ef4444" CornerRadius="4" Padding="6,2"
+                        <Border Grid.Column="1" Background="{DynamicResource DangerBrush}" CornerRadius="4" Padding="6,2"
                                 IsVisible="{Binding IsSkipped}">
                           <TextBlock Text="SKIPPED" FontSize="9" FontWeight="Bold" Foreground="White"/>
                         </Border>
-                        <Border Grid.Column="1" Background="#1e1b4b" BorderBrush="#312e81" BorderThickness="1" CornerRadius="4" Padding="6,2"
+                        <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBg}" BorderBrush="{DynamicResource AccentSubtleBorder}" BorderThickness="1" CornerRadius="4" Padding="6,2"
                                 IsVisible="{Binding !IsSkipped}">
-                          <TextBlock Text="Include" FontSize="9" Foreground="#a78bfa"/>
+                          <TextBlock Text="Include" FontSize="9" Foreground="{DynamicResource AccentSubtleText}"/>
                         </Border>
                       </Grid>
 
                       <!-- Slide Image with Skip Overlay -->
-                      <Border Background="#0b0b14" CornerRadius="6" ClipToBounds="True" Height="135">
+                      <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="6" ClipToBounds="True" Height="135">
                         <Grid>
                           <Image Source="{Binding SlideImage}" Stretch="Uniform"/>
-                          <!-- Red overlay when skipped -->
-                          <Border Background="#cc180505" IsVisible="{Binding IsSkipped}">
+                          <!-- Overlay when skipped -->
+                          <Border Background="{DynamicResource DangerSubtleBg}" Opacity="0.9" IsVisible="{Binding IsSkipped}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
-                              <TextBlock Text="✕" FontSize="36" FontWeight="Bold" Foreground="#ef4444" HorizontalAlignment="Center"/>
-                              <TextBlock Text="SKIPPED" FontSize="11" FontWeight="Bold" Foreground="#f87171" HorizontalAlignment="Center"/>
+                              <TextBlock Text="✕" FontSize="36" FontWeight="Bold" Foreground="{DynamicResource DangerBrush}" HorizontalAlignment="Center"/>
+                              <TextBlock Text="SKIPPED" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource DangerSubtleText}" HorizontalAlignment="Center"/>
                             </StackPanel>
                           </Border>
                         </Grid>
@@ -779,12 +1173,12 @@
           </ScrollViewer>
 
           <!-- Footer with Selected Count & Done Button -->
-          <Border Grid.Row="3" Background="#15172b" CornerRadius="8" Padding="14,10" BorderBrush="#2a2e4a" BorderThickness="1">
+          <Border Grid.Row="3" Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="8" Padding="14,10" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
             <Grid ColumnDefinitions="*,Auto">
               <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="{Binding SkippedSlidesDisplayText}" FontSize="12" FontWeight="SemiBold" Foreground="#a78bfa"
+                <TextBlock Text="{Binding SkippedSlidesDisplayText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}"
                            IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                <TextBlock Text="No slides skipped (all slides will be included)" FontSize="12" Foreground="#64748b"
+                <TextBlock Text="No slides skipped (all slides will be included)" FontSize="12" Foreground="{DynamicResource TextMuted}"
                            IsVisible="{Binding SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
               </StackPanel>
               <Button Grid.Column="1" Classes="primary" Command="{Binding CloseSkipSlidesPopupCommand}" Content="Done" Padding="28,8"/>

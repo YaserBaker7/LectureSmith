@@ -62,7 +62,7 @@ public class OcrService : IDisposable
     /// Runs OCR on multiple slide images concurrently using multi-core processing. Returns one string per slide in order.
     /// </summary>
     public async Task<List<string>> ExtractTextFromImagesAsync(List<string> imagePaths,
-        IProgress<(int current, int total)>? progress = null)
+        IProgress<(int current, int total)>? progress = null, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         if (imagePaths.Count == 0) return [];
@@ -74,25 +74,44 @@ public class OcrService : IDisposable
         var results = new string[imagePaths.Count];
         int completedCount = 0;
         int maxDegree = Math.Clamp(Environment.ProcessorCount, 1, 8);
+        var enginePool = new System.Collections.Concurrent.ConcurrentBag<TesseractEngine>();
 
-        await Parallel.ForAsync(0, imagePaths.Count, new ParallelOptions { MaxDegreeOfParallelism = maxDegree }, (i, ct) =>
+        try
         {
-            try
+            await Parallel.ForAsync(0, imagePaths.Count, new ParallelOptions { MaxDegreeOfParallelism = maxDegree, CancellationToken = ct }, (i, cancelToken) =>
             {
-                using var localEngine = new TesseractEngine(tessDataFolder, "eng", EngineMode.Default);
-                using var img = Pix.LoadFromFile(imagePaths[i]);
-                using var page = localEngine.Process(img);
-                results[i] = page.GetText().Trim();
-            }
-            catch
-            {
-                results[i] = string.Empty;
-            }
+                if (!enginePool.TryTake(out var localEngine))
+                {
+                    localEngine = new TesseractEngine(tessDataFolder, "eng", EngineMode.Default);
+                }
 
-            var count = Interlocked.Increment(ref completedCount);
-            progress?.Report((count, imagePaths.Count));
-            return ValueTask.CompletedTask;
-        });
+                try
+                {
+                    using var img = Pix.LoadFromFile(imagePaths[i]);
+                    using var page = localEngine.Process(img);
+                    results[i] = page.GetText().Trim();
+                }
+                catch
+                {
+                    results[i] = string.Empty;
+                }
+                finally
+                {
+                    enginePool.Add(localEngine);
+                }
+
+                var count = Interlocked.Increment(ref completedCount);
+                progress?.Report((count, imagePaths.Count));
+                return ValueTask.CompletedTask;
+            });
+        }
+        finally
+        {
+            while (enginePool.TryTake(out var engine))
+            {
+                engine.Dispose();
+            }
+        }
 
         return [.. results];
     }

@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LectureSmith.Views.SplashWindow"
+        Title="LectureSmith"
+        Width="460" Height="260"
+        CanResize="False"
+        SystemDecorations="None"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        Background="Transparent"
+        Icon="avares://LectureSmith/Assets/app-icon.ico">
+
+  <Border Background="{DynamicResource CardBackground}"
+          BorderBrush="{DynamicResource CardBorderBrush}"
+          BorderThickness="1.5"
+          CornerRadius="16"
+          ClipToBounds="True">
+    <Grid RowDefinitions="*,Auto">
+      <!-- Center Branding & Animation -->
+      <StackPanel Grid.Row="0"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center"
+                  Spacing="10">
+        <TextBlock Text="🎓" FontSize="44" HorizontalAlignment="Center"/>
+        <StackPanel Spacing="2">
+          <TextBlock Text="LectureSmith"
+                     FontSize="24"
+                     FontWeight="Bold"
+                     Foreground="{DynamicResource TextPrimary}"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="AI Lecture Notes &amp; Study Assistant"
+                     FontSize="11"
+                     Foreground="{DynamicResource TextMuted}"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Animated Progress Bar -->
+        <ProgressBar IsIndeterminate="True"
+                     Width="280"
+                     Height="4"
+                     Foreground="{DynamicResource AccentBrush}"
+                     Background="{DynamicResource CardBorderBrush}"
+                     CornerRadius="2"
+                     Margin="0,10,0,0"
+                     HorizontalAlignment="Center"/>
+
+        <TextBlock Text="Opening workspace..."
+                   FontSize="11"
+                   Foreground="{DynamicResource AccentSubtleText}"
+                   HorizontalAlignment="Center"/>
+      </StackPanel>
+
+      <!-- Footer Info -->
+      <Border Grid.Row="1" Background="{DynamicResource CardBackgroundSecondary}" Padding="14,8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="Ready to run" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+          <TextBlock Grid.Column="1" Text="v3.0.0" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</Window>

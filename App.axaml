@@ -3,13 +3,189 @@
              x:Class="LectureSmith.App"
              xmlns:local="using:LectureSmith"
              RequestedThemeVariant="Dark">
-             <!-- Enforce Dark theme variant regardless of OS system settings -->
-
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
-  
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+
+                <!-- ════════════════ LIGHT THEME ════════════════ -->
+                <ResourceDictionary x:Key="Light">
+                    <!-- Surface / Canvas -->
+                    <SolidColorBrush x:Key="AppBackground" Color="#EDF2F7"/>
+                    <SolidColorBrush x:Key="SidebarBackground" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="HeaderBackground" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="CardBackgroundSecondary" Color="#F8FAFC"/>
+                    <SolidColorBrush x:Key="CardBorderBrush" Color="#CBD5E1"/>
+                    <SolidColorBrush x:Key="CardBorderBrushSubtle" Color="#E2E8F0"/>
+                    <SolidColorBrush x:Key="CardBorderHover" Color="#818CF8"/>
+
+                    <!-- Inputs & Controls -->
+                    <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="InputBorderBrush" Color="#CBD5E1"/>
+                    <SolidColorBrush x:Key="InputFocusBorder" Color="#4338CA"/>
+                    <SolidColorBrush x:Key="ControlHoverBackground" Color="#F1F5F9"/>
+
+                    <!-- Dropzones -->
+                    <SolidColorBrush x:Key="DropzoneBackground" Color="#F8FAFC"/>
+                    <SolidColorBrush x:Key="DropzoneBorderBrush" Color="#CBD5E1"/>
+                    <SolidColorBrush x:Key="DropzoneHoverBackground" Color="#EEF2FF"/>
+                    <SolidColorBrush x:Key="DropzoneHoverBorder" Color="#4338CA"/>
+
+                    <!-- Typography -->
+                    <SolidColorBrush x:Key="TextPrimary" Color="#0F172A"/>
+                    <SolidColorBrush x:Key="TextSecondary" Color="#334155"/>
+                    <SolidColorBrush x:Key="TextMuted" Color="#64748B"/>
+                    <SolidColorBrush x:Key="TextInverse" Color="#FFFFFF"/>
+
+                    <!-- Accent & Brand -->
+                    <SolidColorBrush x:Key="AccentBrush" Color="#4338CA"/>
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#3730A3"/>
+                    <SolidColorBrush x:Key="AccentSubtleBg" Color="#EEF2FF"/>
+                    <SolidColorBrush x:Key="AccentSubtleBorder" Color="#C7D2FE"/>
+                    <SolidColorBrush x:Key="AccentSubtleText" Color="#312E81"/>
+
+                    <!-- Danger & Success -->
+                    <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+                    <SolidColorBrush x:Key="DangerHoverBrush" Color="#DC2626"/>
+                    <SolidColorBrush x:Key="DangerSubtleBg" Color="#FEF2F2"/>
+                    <SolidColorBrush x:Key="DangerSubtleBorder" Color="#FECACA"/>
+                    <SolidColorBrush x:Key="DangerSubtleText" Color="#DC2626"/>
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+                    <SolidColorBrush x:Key="SuccessSubtleBg" Color="#ECFDF5"/>
+                    <SolidColorBrush x:Key="SuccessSubtleText" Color="#059669"/>
+
+                    <!-- Top Bento Stat Cards (High-Contrast Tints) -->
+                    <SolidColorBrush x:Key="StatWeeklyBg" Color="#E0F2FE"/>
+                    <SolidColorBrush x:Key="StatWeeklyBorder" Color="#7DD3FC"/>
+                    <SolidColorBrush x:Key="StatWeeklyNumber" Color="#0369A1"/>
+                    <SolidColorBrush x:Key="StatWeeklyLabel" Color="#075985"/>
+
+                    <SolidColorBrush x:Key="StatMonthlyBg" Color="#DCFCE7"/>
+                    <SolidColorBrush x:Key="StatMonthlyBorder" Color="#86EFAC"/>
+                    <SolidColorBrush x:Key="StatMonthlyNumber" Color="#15803D"/>
+                    <SolidColorBrush x:Key="StatMonthlyLabel" Color="#166534"/>
+
+                    <SolidColorBrush x:Key="StatModelBg" Color="#EDE9FE"/>
+                    <SolidColorBrush x:Key="StatModelBorder" Color="#C4B5FD"/>
+                    <SolidColorBrush x:Key="StatModelNumber" Color="#6D28D9"/>
+                    <SolidColorBrush x:Key="StatModelLabel" Color="#5B21B6"/>
+
+                    <SolidColorBrush x:Key="StatStatusBg" Color="#F0FDF4"/>
+                    <SolidColorBrush x:Key="StatStatusBorder" Color="#86EFAC"/>
+                    <SolidColorBrush x:Key="StatStatusNumber" Color="#15803D"/>
+                    <SolidColorBrush x:Key="StatStatusLabel" Color="#166534"/>
+
+                    <!-- Preview & Chat -->
+                    <SolidColorBrush x:Key="PreviewBackground" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="PreviewBorder" Color="#CBD5E1"/>
+                    <SolidColorBrush x:Key="PreviewText" Color="#0F172A"/>
+
+                    <SolidColorBrush x:Key="ChatUserBubbleBg" Color="#4338CA"/>
+                    <SolidColorBrush x:Key="ChatUserBubbleFg" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="ChatAiBubbleBg" Color="#F1F5F9"/>
+                    <SolidColorBrush x:Key="ChatAiBubbleBorder" Color="#CBD5E1"/>
+                    <SolidColorBrush x:Key="ChatAiBubbleFg" Color="#0F172A"/>
+
+                    <!-- Modals -->
+                    <SolidColorBrush x:Key="ModalBackdrop" Color="#80000000"/>
+                    <SolidColorBrush x:Key="ModalBackground" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="ModalBorder" Color="#CBD5E1"/>
+                </ResourceDictionary>
+
+                <!-- ════════════════ DARK THEME ════════════════ -->
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Surface / Canvas -->
+                    <SolidColorBrush x:Key="AppBackground" Color="#0A0C14"/>
+                    <SolidColorBrush x:Key="SidebarBackground" Color="#0F121E"/>
+                    <SolidColorBrush x:Key="HeaderBackground" Color="#0F121E"/>
+                    <SolidColorBrush x:Key="CardBackground" Color="#131726"/>
+                    <SolidColorBrush x:Key="CardBackgroundSecondary" Color="#181D30"/>
+                    <SolidColorBrush x:Key="CardBorderBrush" Color="#20273D"/>
+                    <SolidColorBrush x:Key="CardBorderBrushSubtle" Color="#181E30"/>
+                    <SolidColorBrush x:Key="CardBorderHover" Color="#4F46E5"/>
+
+                    <!-- Inputs & Controls -->
+                    <SolidColorBrush x:Key="InputBackground" Color="#151A2C"/>
+                    <SolidColorBrush x:Key="InputBorderBrush" Color="#252E47"/>
+                    <SolidColorBrush x:Key="InputFocusBorder" Color="#8B5CF6"/>
+                    <SolidColorBrush x:Key="ControlHoverBackground" Color="#1F263D"/>
+
+                    <!-- Dropzones -->
+                    <SolidColorBrush x:Key="DropzoneBackground" Color="#101322"/>
+                    <SolidColorBrush x:Key="DropzoneBorderBrush" Color="#262F4A"/>
+                    <SolidColorBrush x:Key="DropzoneHoverBackground" Color="#1A1838"/>
+                    <SolidColorBrush x:Key="DropzoneHoverBorder" Color="#8B5CF6"/>
+
+                    <!-- Typography -->
+                    <SolidColorBrush x:Key="TextPrimary" Color="#F8FAFC"/>
+                    <SolidColorBrush x:Key="TextSecondary" Color="#94A3B8"/>
+                    <SolidColorBrush x:Key="TextMuted" Color="#64748B"/>
+                    <SolidColorBrush x:Key="TextInverse" Color="#FFFFFF"/>
+
+                    <!-- Accent & Brand -->
+                    <SolidColorBrush x:Key="AccentBrush" Color="#7C3AED"/>
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#6D28D9"/>
+                    <SolidColorBrush x:Key="AccentSubtleBg" Color="#1E1B4B"/>
+                    <SolidColorBrush x:Key="AccentSubtleBorder" Color="#3730A3"/>
+                    <SolidColorBrush x:Key="AccentSubtleText" Color="#C4B5FD"/>
+
+                    <!-- Danger & Success -->
+                    <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+                    <SolidColorBrush x:Key="DangerHoverBrush" Color="#DC2626"/>
+                    <SolidColorBrush x:Key="DangerSubtleBg" Color="#2D1217"/>
+                    <SolidColorBrush x:Key="DangerSubtleBorder" Color="#7F1D1D"/>
+                    <SolidColorBrush x:Key="DangerSubtleText" Color="#FCA5A5"/>
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+                    <SolidColorBrush x:Key="SuccessSubtleBg" Color="#062E24"/>
+                    <SolidColorBrush x:Key="SuccessSubtleText" Color="#34D399"/>
+
+                    <!-- Top Bento Stat Cards (Pastel/Glow Tints) -->
+                    <SolidColorBrush x:Key="StatWeeklyBg" Color="#082F49"/>
+                    <SolidColorBrush x:Key="StatWeeklyBorder" Color="#0C4A6E"/>
+                    <SolidColorBrush x:Key="StatWeeklyNumber" Color="#38BDF8"/>
+                    <SolidColorBrush x:Key="StatWeeklyLabel" Color="#7DD3FC"/>
+
+                    <SolidColorBrush x:Key="StatMonthlyBg" Color="#064E3B"/>
+                    <SolidColorBrush x:Key="StatMonthlyBorder" Color="#065F46"/>
+                    <SolidColorBrush x:Key="StatMonthlyNumber" Color="#34D399"/>
+                    <SolidColorBrush x:Key="StatMonthlyLabel" Color="#6EE7B7"/>
+
+                    <SolidColorBrush x:Key="StatModelBg" Color="#2E1065"/>
+                    <SolidColorBrush x:Key="StatModelBorder" Color="#4C1D95"/>
+                    <SolidColorBrush x:Key="StatModelNumber" Color="#C4B5FD"/>
+                    <SolidColorBrush x:Key="StatModelLabel" Color="#A78BFA"/>
+
+                    <SolidColorBrush x:Key="StatStatusBg" Color="#052E16"/>
+                    <SolidColorBrush x:Key="StatStatusBorder" Color="#14532D"/>
+                    <SolidColorBrush x:Key="StatStatusNumber" Color="#4ADE80"/>
+                    <SolidColorBrush x:Key="StatStatusLabel" Color="#86EFAC"/>
+
+                    <!-- Preview & Chat -->
+                    <SolidColorBrush x:Key="PreviewBackground" Color="#0C0E18"/>
+                    <SolidColorBrush x:Key="PreviewBorder" Color="#1E253A"/>
+                    <SolidColorBrush x:Key="PreviewText" Color="#CBD5E1"/>
+
+                    <SolidColorBrush x:Key="ChatUserBubbleBg" Color="#7C3AED"/>
+                    <SolidColorBrush x:Key="ChatUserBubbleFg" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="ChatAiBubbleBg" Color="#171C2E"/>
+                    <SolidColorBrush x:Key="ChatAiBubbleBorder" Color="#283250"/>
+                    <SolidColorBrush x:Key="ChatAiBubbleFg" Color="#E2E8F0"/>
+
+                    <!-- Modals -->
+                    <SolidColorBrush x:Key="ModalBackdrop" Color="#B3000000"/>
+                    <SolidColorBrush x:Key="ModalBackground" Color="#131726"/>
+                    <SolidColorBrush x:Key="ModalBorder" Color="#3730A3"/>
+                </ResourceDictionary>
+
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

@@ -7,8 +7,20 @@ namespace LectureSmith;
 
 sealed class Program
 {
-    private static readonly string CrashLogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LectureSmith_crash.log");
+    private static string GetCrashLogPath()
+    {
+        try
+        {
+            var logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LectureSmith", "logs");
+            Directory.CreateDirectory(logDir);
+            return Path.Combine(logDir, "crash.log");
+        }
+        catch
+        {
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LectureSmith_crash.log");
+        }
+    }
 
     [STAThread]
     public static void Main(string[] args)
@@ -19,7 +31,7 @@ sealed class Program
             try
             {
                 var ex = e.ExceptionObject as Exception;
-                File.AppendAllText(CrashLogPath,
+                File.AppendAllText(GetCrashLogPath(),
                     $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] UNHANDLED EXCEPTION (IsTerminating={e.IsTerminating}):\n{ex}\n");
             }
             catch { }
@@ -29,7 +41,7 @@ sealed class Program
         {
             try
             {
-                File.AppendAllText(CrashLogPath,
+                File.AppendAllText(GetCrashLogPath(),
                     $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] UNOBSERVED TASK EXCEPTION:\n{e.Exception}\n");
             }
             catch { }
@@ -44,7 +56,7 @@ sealed class Program
         {
             try
             {
-                File.AppendAllText(CrashLogPath,
+                File.AppendAllText(GetCrashLogPath(),
                     $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MAIN CATCH:\n{ex}\n");
             }
             catch { }

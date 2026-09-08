@@ -4,7 +4,7 @@
 [![Framework](https://img.shields.io/badge/Framework-.NET%209.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI%2011.3-orange.svg)](https://avaloniaui.net/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue.svg)](#)
-[![Version](https://img.shields.io/badge/Version-v2.6.0.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
+[![Version](https://img.shields.io/badge/Version-v3.0.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **LectureSmith** is a modern, high-performance desktop application designed for students and educators. It turns lecture slides (PDFs) and reference textbooks into comprehensive, beautifully structured study notes using **Google AI Studio (Gemini API)**.
@@ -13,21 +13,36 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 
 ---
 
-## 🌟 What's New in v2.6.0.0
+## 🌟 What's New in v3.0.0
 
-* 📐 **Comprehensive Math Typesetting (MathJax 3 + Custom Unicode Engine):**
-  * Mathematical formulas, equations, fractions, and Greek notation (`$...$` and `$$...$$`) are cleanly rendered in both HTML and PDF outputs.
-  * Markdown pipeline tuned to preserve LaTeX curly braces and mathematical subscript/superscript groupings.
-* 🖨️ **High-Fidelity Headless Browser PDF Generation:**
-  * Uses your installed browser (Microsoft Edge or Google Chrome) in isolated headless mode to produce crisp, publication-quality A4 PDFs with vector math and styled callouts.
-  * Falls back automatically to QuestPDF if no browser is detected.
-* 🧹 **Automatic Slide Cleanup for PDF & HTML Exports:**
-  * For self-contained HTML (base64) and PDF (binary), temporary slide image folders are cleaned up automatically after export, keeping output folders tidy.
-  * Obsidian markdown preserves the slide directory as needed for relative image embeds.
-* ⚡ **Performance, Memory, and Error Handling Audits:**
-  * Slide thumbnail bitmaps now implement deterministic disposal to minimize memory overhead.
-  * Multi-core OCR and Docnet native calls fully thread-synchronized.
-  * Pre-compiled segment parsing regex and defensive process tree termination for headless printing.
+* 🎨 **Complete Modern 2026 UI Redesign:**
+  * **Navigation Sidebar:** Seamlessly switch between dedicated **Workspace** and **Settings & Maintenance** views.
+  * **Full-Width Header Bar:** Clean, modern layout matching top desktop applications (VS Code, Figma) with zero crossed border lines.
+  * **Bento Analytics Stat Cards:** Real-time visibility into weekly token usage, monthly billing cycle consumption, active AI model status, and live studio status.
+* 🌓 **High-Contrast Dark & Light Theming Engine:**
+  * Fully responsive Dark and Light color palettes with punchy indigo/violet brand accents, crisp card borders, and optimal text readability.
+  * Instant single-click theme switcher directly in the sidebar footer.
+* ⚡ **Instant App Startup:**
+  * Beautiful branded splash window displaying live workspace initialization progress.
+  * Launches smoothly with zero white flashes or JIT startup lag.
+* 🛑 **Instant Generation Cancellation:**
+  * Cancellation requests immediately abort ongoing tasks across slide extraction, OCR, and AI streaming.
+  * Fully reliable exception handling and resource disposal — the app is instantly ready for another run without locking or restarting.
+* 📋 **Interactive Visual Slide Skipping Modal:**
+  * Visual thumbnail grid to preview and selectively exclude syllabus, intro, or administrative slides.
+  * Skipped slides are still sent to the AI for background lecture context, but clearly annotated as skipped in output notes.
+* 📁 **Smart Duplicate File Protection:**
+  * Re-generating notes for the same course automatically appends ` (1)`, ` (2)`, etc. instead of overwriting existing files.
+* 🧹 **Zero-Trace Slide Staging & Clean Output Folders:**
+  * HTML and PDF exports stage slide assets in temporary cache and embed them directly — output directories remain 100% clean with no unwanted `slides/` subfolders left behind.
+* 📚 **Course History Management:**
+  * Easily remove old or misspelled courses from the dropdown history with one-click `✕` delete buttons.
+* 🖱️ **Micro-Interactions & Scroll Fixes:**
+  * Resolved mouse-wheel hijacking on ComboBoxes — scrolling over the left configuration panel scrolls smoothly without accidental dropdown cycling.
+  * Solid button hover interactions without horizontal bulging or layout shifting.
+* 🛡️ **In-App Data Maintenance & Uninstaller:**
+  * Built-in tools in Settings to wipe local settings, clear caches, or perform a complete application uninstall.
+  * Includes Inno Setup installer script (`installer.iss`) for standard Windows installations.
 
 ---
 
@@ -57,6 +72,12 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 * Free-tier indicators (`Gemini Flash / Lite`) vs. paid model indicators (`Pro / Max`).
 * Optional AI reasoning/thinking mode for complex STEM subjects.
 * Weekly and monthly token usage tracking.
+
+### 🎨 Modern Desktop UI & Theming
+* **Sidebar Navigation:** Distinct Workspace Studio and Settings & Maintenance views.
+* **Instant Dark / Light Mode:** Switch between high-contrast Dark and Light themes with persistent state.
+* **Bento Analytics Overview:** Live stat cards for weekly/monthly tokens, active AI model, and studio readiness.
+* **Follow-up Chat Session:** Review generated notes and chat interactively with the AI study assistant about the lecture material.
 
 ---
 
@@ -137,9 +158,12 @@ LectureSmith/
 │   └── ViewModelBase.cs
 ├── Views/               # Avalonia XAML views
 │   ├── MainWindow.axaml
-│   └── MainWindow.axaml.cs
-└── Assets/              # Icons and styling resources
-    └── app-icon.ico
+│   ├── MainWindow.axaml.cs
+│   ├── SplashWindow.axaml
+│   └── SplashWindow.axaml.cs
+├── Assets/              # Icons and styling resources
+│   └── app-icon.ico
+└── installer.iss        # Inno Setup Windows installer script
 ```
 
 ---

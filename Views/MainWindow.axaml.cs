@@ -29,6 +29,20 @@ public partial class MainWindow : Window
             booksZone.AddHandler(DragDrop.DragOverEvent, DragOver);
         }
 
+        var leftScroller = this.FindControl<ScrollViewer>("LeftPanelScroller");
+        if (leftScroller != null)
+        {
+            leftScroller.AddHandler(Avalonia.Input.InputElement.PointerWheelChangedEvent, (sender, e) =>
+            {
+                if (sender is ScrollViewer sv)
+                {
+                    var delta = e.Delta.Y;
+                    sv.Offset = new Avalonia.Vector(sv.Offset.X, sv.Offset.Y - delta * 50);
+                    e.Handled = true;
+                }
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        }
+
         // Auto-scroll chat to bottom when messages are added
         DataContextChanged += (s, e) =>
         {
@@ -44,6 +58,9 @@ public partial class MainWindow : Window
                 };
             }
         };
+
+        // Dispose ViewModel resources (thumbnails, native handles) upon application exit
+        Closed += (s, e) => (DataContext as IDisposable)?.Dispose();
     }
 
     private void DragOver(object? sender, DragEventArgs e)

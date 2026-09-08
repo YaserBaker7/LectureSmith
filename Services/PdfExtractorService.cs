@@ -18,9 +18,9 @@ public class PdfExtractorService
     /// <summary>
     /// Extracts text from all pages of a PDF file.
     /// </summary>
-    public async Task<List<string>> ExtractTextAsync(string pdfPath, int? startPage = null, int? endPage = null)
+    public async Task<List<string>> ExtractTextAsync(string pdfPath, int? startPage = null, int? endPage = null, CancellationToken ct = default)
     {
-        await _docnetLock.WaitAsync();
+        await _docnetLock.WaitAsync(ct);
         try
         {
             return await Task.Run(() =>
@@ -35,13 +35,14 @@ public class PdfExtractorService
 
                 for (int i = start; i <= end; i++)
                 {
+                    ct.ThrowIfCancellationRequested();
                     using var pageReader = docReader.GetPageReader(i);
                     var text = pageReader.GetText();
                     pages.Add(text ?? string.Empty);
                 }
 
                 return pages;
-            });
+            }, ct);
         }
         finally
         {
@@ -53,9 +54,9 @@ public class PdfExtractorService
     /// Extracts each page of a PDF as a PNG image at full resolution. Returns list of saved image paths.
     /// </summary>
     public async Task<List<string>> ExtractSlideImagesAsync(string pdfPath, string outputDir,
-        IProgress<(int current, int total)>? progress = null)
+        IProgress<(int current, int total)>? progress = null, CancellationToken ct = default)
     {
-        return await ExtractImagesInternalAsync(pdfPath, outputDir, DefaultPageDimensions, progress);
+        return await ExtractImagesInternalAsync(pdfPath, outputDir, DefaultPageDimensions, progress, ct);
     }
 
     /// <summary>
@@ -63,9 +64,9 @@ public class PdfExtractorService
     /// Used for the slide-skip popup to reduce memory usage and speed up loading.
     /// </summary>
     public async Task<List<string>> ExtractSlidePreviewsAsync(string pdfPath, string outputDir,
-        IProgress<(int current, int total)>? progress = null)
+        IProgress<(int current, int total)>? progress = null, CancellationToken ct = default)
     {
-        return await ExtractImagesInternalAsync(pdfPath, outputDir, PreviewPageDimensions, progress);
+        return await ExtractImagesInternalAsync(pdfPath, outputDir, PreviewPageDimensions, progress, ct);
     }
 
     /// <summary>
@@ -108,9 +109,9 @@ public class PdfExtractorService
     }
 
     private async Task<List<string>> ExtractImagesInternalAsync(string pdfPath, string outputDir,
-        PageDimensions dimensions, IProgress<(int current, int total)>? progress)
+        PageDimensions dimensions, IProgress<(int current, int total)>? progress, CancellationToken ct = default)
     {
-        await _docnetLock.WaitAsync();
+        await _docnetLock.WaitAsync(ct);
         try
         {
             return await Task.Run(() =>
@@ -124,6 +125,7 @@ public class PdfExtractorService
 
                 for (int i = 0; i < pageCount; i++)
                 {
+                    ct.ThrowIfCancellationRequested();
                     try
                     {
                         using var pageReader = docReader.GetPageReader(i);
@@ -147,7 +149,7 @@ public class PdfExtractorService
                 }
 
                 return imagePaths;
-            });
+            }, ct);
         }
         finally
         {
@@ -172,5 +174,15 @@ public class PdfExtractorService
         using var data = image.Encode(SKEncodedImageFormat.Png, 85);
         using var stream = File.Create(outputPath);
         data.SaveTo(stream);
+    }
+
+    /// <summary>
+    /// Parses slide number from filenames like 'slide_01.png', 'slide_100.png' for natural numeric sorting.
+    /// </summary>
+    public static int GetSlideNumber(string filePath)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(filePath);
+        var match = System.Text.RegularExpressions.Regex.Match(fileName, @"\d+");
+        return match.Success && int.TryParse(match.Value, out var num) ? num : int.MaxValue;
     }
 }

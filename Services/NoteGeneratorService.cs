@@ -37,7 +37,7 @@ public class NoteGeneratorService
 
             if (Directory.Exists(slidesDir))
             {
-                var existing = Directory.GetFiles(slidesDir, "slide_*.png").OrderBy(f => f).ToList();
+                var existing = Directory.GetFiles(slidesDir, "slide_*.png").OrderBy(PdfExtractorService.GetSlideNumber).ToList();
                 if (existing.Count > 0)
                 {
                     result.SlideImagePaths = existing;
@@ -51,7 +51,7 @@ public class NoteGeneratorService
                     settings.SlidesFile.FilePath, slidesDir,
                     new Progress<(int current, int total)>(p =>
                         progress?.Report(new ProgressUpdate($"Extracting slide {p.current} of {p.total}...",
-                            (int)(10.0 * p.current / p.total)))));
+                            (int)(10.0 * p.current / p.total)))), ct);
             }
             ct.ThrowIfCancellationRequested();
         }
@@ -61,7 +61,7 @@ public class NoteGeneratorService
         var slideTexts = new List<string>();
         if (settings.SlidesFile != null)
         {
-            slideTexts = await _pdfExtractor.ExtractTextAsync(settings.SlidesFile.FilePath);
+            slideTexts = await _pdfExtractor.ExtractTextAsync(settings.SlidesFile.FilePath, ct: ct);
             ct.ThrowIfCancellationRequested();
         }
 
@@ -153,7 +153,7 @@ public class NoteGeneratorService
             slideImagePaths,
             new Progress<(int current, int total)>(p =>
                 progress?.Report(new ProgressUpdate($"OCR scanning slide {p.current} of {p.total}...",
-                    15 + (int)(5.0 * p.current / p.total)))));
+                    15 + (int)(5.0 * p.current / p.total)))), ct);
         ct.ThrowIfCancellationRequested();
 
         // Merge OCR text with Docnet text per slide
@@ -183,7 +183,7 @@ public class NoteGeneratorService
         foreach (var book in bookFiles)
         {
             ParsePageRange(book.ChapterInfo, out var startPage, out var endPage);
-            var pages = await _pdfExtractor.ExtractTextAsync(book.FilePath, startPage, endPage);
+            var pages = await _pdfExtractor.ExtractTextAsync(book.FilePath, startPage, endPage, ct);
             bookTexts[book.FileName] = pages;
             ct.ThrowIfCancellationRequested();
         }
@@ -432,20 +432,33 @@ public class NoteGeneratorService
 
     /// <summary>
     /// Finds the highest slide number that was covered in the generated markdown.
-    /// Looks for patterns like "## Slide 31", "### Slide 31", or "Slide 31".
+    /// Prioritizes section headings like '## Slide 31' to avoid false matches in body prose.
     /// </summary>
     private static int FindHighestCoveredSlide(string markdown)
     {
-        var matches = Regex.Matches(markdown, @"(?:##\s*Slide|###\s*Slide|\bSlide)\s*(\d+)", RegexOptions.IgnoreCase);
+        // 1. Look for explicit line-start headings (e.g. "## Slide 31", "### Slide 31", "# Slide 31")
+        var headerMatches = Regex.Matches(markdown, @"(?m)^\s*#{1,3}\s*Slide\s+(\d+)", RegexOptions.IgnoreCase);
         int max = 0;
-        foreach (Match m in matches)
+        foreach (Match m in headerMatches)
         {
-            if (int.TryParse(m.Groups[1].Value, out int num))
+            if (int.TryParse(m.Groups[1].Value, out int num) && num > max && num <= 500)
             {
-                if (num > max && num <= 500) // Filter out years like 2024
-                    max = num;
+                max = num;
             }
         }
+
+        if (max > 0) return max;
+
+        // 2. Fallback: match inline bold slide headers like "**Slide 31**" or "## Slide 31" anywhere
+        var fallbackMatches = Regex.Matches(markdown, @"(?:#{1,3}\s*Slide|\*\*Slide)\s*(\d+)", RegexOptions.IgnoreCase);
+        foreach (Match m in fallbackMatches)
+        {
+            if (int.TryParse(m.Groups[1].Value, out int num) && num > max && num <= 500)
+            {
+                max = num;
+            }
+        }
+
         return max;
     }
 

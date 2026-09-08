@@ -8,7 +8,7 @@ using System.Text;
 
 namespace LectureSmith.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     // Static converters for ComboBox display names
     public static readonly FuncValueConverter<LectureMode, string> LectureModeDisplayConverter =
@@ -67,6 +67,26 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private bool _isStatusError;
     [ObservableProperty] private bool _showSettings;
+    [ObservableProperty] private bool _showWipeConfirmation;
+    [ObservableProperty] private bool _showUninstallConfirmation;
+    [ObservableProperty] private string _wipeStatusMessage = string.Empty;
+
+    // === Navigation & Theme ===
+    [ObservableProperty] private bool _isDarkMode = true;
+    [ObservableProperty] private string _currentNav = "Workspace";
+
+    public bool IsWorkspaceActive => !ShowSettings;
+    public bool IsSettingsActive => ShowSettings;
+
+    public string ActiveModelDisplay => SelectedModel?.DisplayName ?? "Gemini Flash";
+    public string ActiveModelSubtext => SelectedModel?.IsFree == true ? "🟢 Free Tier (1M Context)" : "🔴 Custom Model";
+
+    partial void OnShowSettingsChanged(bool value)
+    {
+        CurrentNav = value ? "Settings" : "Workspace";
+        OnPropertyChanged(nameof(IsWorkspaceActive));
+        OnPropertyChanged(nameof(IsSettingsActive));
+    }
 
     // === Token estimate & live preview ===
     [ObservableProperty] private string _estimatedTokenInfo = string.Empty;
@@ -112,6 +132,11 @@ public partial class MainWindowViewModel : ViewModelBase
         var savedModel = GeminiService.FindModelById(AvailableModels, _settingsService.Settings.PreferredModelId);
         SelectedModel = savedModel;
         UpdateTokenStatsDisplay();
+
+        // Theme preference
+        var themePref = _settingsService.Settings.ThemePreference;
+        IsDarkMode = string.IsNullOrEmpty(themePref) || themePref.Equals("Dark", StringComparison.OrdinalIgnoreCase);
+        ApplyTheme(IsDarkMode);
 
         // Load Course History
         Courses.Clear();
@@ -232,6 +257,8 @@ public partial class MainWindowViewModel : ViewModelBase
             _settingsService.Settings.PreferredModelId = value.Id;
             _settingsService.Save();
         }
+        OnPropertyChanged(nameof(ActiveModelDisplay));
+        OnPropertyChanged(nameof(ActiveModelSubtext));
         OnPropertyChanged(nameof(CanGenerate));
     }
 
@@ -341,7 +368,7 @@ public partial class MainWindowViewModel : ViewModelBase
             // Reuse cached slide images if they exist on disk
             if (Directory.Exists(cacheDir))
             {
-                var existing = Directory.GetFiles(cacheDir, "slide_*.png").OrderBy(f => f).ToList();
+                var existing = Directory.GetFiles(cacheDir, "slide_*.png").OrderBy(PdfExtractorService.GetSlideNumber).ToList();
                 if (existing.Count > 0)
                 {
                     imagePaths = existing;
@@ -510,6 +537,52 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NavigateToWorkspace()
+    {
+        ShowSettings = false;
+    }
+
+    [RelayCommand]
+    private void NavigateToSettings()
+    {
+        ShowSettings = true;
+    }
+
+    [RelayCommand]
+    public void ToggleTheme()
+    {
+        IsDarkMode = !IsDarkMode;
+        ApplyTheme(IsDarkMode);
+        _settingsService.Settings.ThemePreference = IsDarkMode ? "Dark" : "Light";
+        _settingsService.Save();
+    }
+
+    public static void ApplyTheme(bool isDark)
+    {
+        if (Avalonia.Application.Current != null)
+        {
+            Avalonia.Application.Current.RequestedThemeVariant =
+                isDark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveCourse(string course)
+    {
+        if (string.IsNullOrEmpty(course)) return;
+        Courses.Remove(course);
+        if (_settingsService.Settings.CourseHistory != null)
+        {
+            _settingsService.Settings.CourseHistory.Remove(course);
+            _settingsService.Save();
+        }
+        if (SelectedCourse == course)
+        {
+            SelectedCourse = Courses.FirstOrDefault() ?? string.Empty;
+        }
+    }
+
+    [RelayCommand]
     private void RemoveSlides()
     {
         SlidesFile = null;
@@ -636,7 +709,7 @@ public partial class MainWindowViewModel : ViewModelBase
             ProgressMessage = "Exporting notes...";
             ProgressPercent = 95;
 
-            var outputFile = await _outputExporterService.ExportAsync(result!, settings);
+            var outputFile = await _outputExporterService.ExportAsync(result!, settings, _cts.Token);
 
             // Record token usage
             var outputTokens = (result?.MarkdownContent?.Length ?? 0) / 4;
@@ -680,20 +753,64 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         finally
         {
-            // Automatic self-cleanup of current request's images
-            if (result?.SlideImagePaths?.FirstOrDefault() is string firstImage)
-            {
-                var sessionDir = Path.GetDirectoryName(firstImage);
-                if (sessionDir != null && Directory.Exists(sessionDir))
-                {
-                    try { Directory.Delete(sessionDir, true); } catch { /* ignore locked files */ }
-                }
-            }
-
             IsGenerating = false;
             _cts?.Dispose();
             _cts = null;
         }
+    }
+
+    [RelayCommand]
+    private void RequestWipeData()
+    {
+        ShowWipeConfirmation = true;
+        ShowUninstallConfirmation = false;
+        WipeStatusMessage = string.Empty;
+    }
+
+    [RelayCommand]
+    private void CancelWipeData()
+    {
+        ShowWipeConfirmation = false;
+    }
+
+    [RelayCommand]
+    private void ConfirmWipeData()
+    {
+        SettingsService.WipeAllData(selfUninstall: false);
+        _settingsService.Reset();
+
+        ApiKey = string.Empty;
+        IsApiKeyValid = false;
+        ApiKeyStatus = "Not configured";
+        OutputPath = string.Empty;
+        Courses.Clear();
+        SelectedCourse = string.Empty;
+        ChatMessages.Clear();
+        LivePreview = string.Empty;
+        EstimatedTokenInfo = string.Empty;
+        ShowWipeConfirmation = false;
+        WipeStatusMessage = "✓ All settings, history, and cached data have been completely wiped.";
+        UpdateTokenStatsDisplay();
+    }
+
+    [RelayCommand]
+    private void RequestUninstall()
+    {
+        ShowUninstallConfirmation = true;
+        ShowWipeConfirmation = false;
+        WipeStatusMessage = string.Empty;
+    }
+
+    [RelayCommand]
+    private void CancelUninstall()
+    {
+        ShowUninstallConfirmation = false;
+    }
+
+    [RelayCommand]
+    private void ConfirmUninstall()
+    {
+        SettingsService.WipeAllData(selfUninstall: true);
     }
 
     [RelayCommand]
@@ -733,5 +850,18 @@ public partial class MainWindowViewModel : ViewModelBase
     private void CancelGeneration()
     {
         _cts?.Cancel();
+        ProgressMessage = "Cancelling...";
+    }
+
+    public void Dispose()
+    {
+        _cts?.Dispose();
+        _ocrService.Dispose();
+        foreach (var thumbnail in SlidesThumbnails)
+        {
+            thumbnail.Dispose();
+        }
+        SlidesThumbnails.Clear();
+        GC.SuppressFinalize(this);
     }
 }

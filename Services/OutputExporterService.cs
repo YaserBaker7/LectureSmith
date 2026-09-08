@@ -20,43 +20,77 @@ public class OutputExporterService
     private static readonly Regex CombinedInlineRegex =
         new(@"\*\*(.+?)\*\*|`([^`]+)`|(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)|(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Compiled);
 
+    private static string GetUniqueFilePath(string directory, string baseName, string extension)
+    {
+        var candidate = Path.Combine(directory, $"{baseName}{extension}");
+        if (!File.Exists(candidate)) return candidate;
+        
+        int counter = 1;
+        while (File.Exists(Path.Combine(directory, $"{baseName} ({counter}){extension}")))
+        {
+            counter++;
+        }
+        return Path.Combine(directory, $"{baseName} ({counter}){extension}");
+    }
+
     /// <summary>
     /// Exports generated notes to the specified format.
     /// </summary>
-    public async Task<string> ExportAsync(GenerationResult result, GenerationSettings settings)
+    public async Task<string> ExportAsync(GenerationResult result, GenerationSettings settings, CancellationToken ct = default)
     {
         Directory.CreateDirectory(settings.OutputPath);
+        var baseName = $"{settings.EffectiveCourseName} - Notes";
 
-        // Copy slide images to output
-        var slidesOutputDir = Path.Combine(settings.OutputPath, "slides");
-        Directory.CreateDirectory(slidesOutputDir);
-        foreach (var imgPath in result.SlideImagePaths)
+        // For Obsidian: markdown requires the external slides folder to reside on disk alongside the .md file.
+        if (settings.Format == OutputFormat.Obsidian)
         {
-            var destPath = Path.Combine(slidesOutputDir, Path.GetFileName(imgPath));
-            File.Copy(imgPath, destPath, overwrite: true);
+            var slidesOutputDir = Path.Combine(settings.OutputPath, "slides");
+            Directory.CreateDirectory(slidesOutputDir);
+            foreach (var imgPath in result.SlideImagePaths)
+            {
+                if (File.Exists(imgPath))
+                {
+                    var destPath = Path.Combine(slidesOutputDir, Path.GetFileName(imgPath));
+                    File.Copy(imgPath, destPath, overwrite: true);
+                }
+            }
+
+            ct.ThrowIfCancellationRequested();
+            return await ExportObsidianAsync(result, settings, baseName);
         }
 
-        var baseName = $"{settings.EffectiveCourseName} - Notes";
+        // For HTML (base64 embedded) and PDF (binary embedded), images are self-contained.
+        // Stage images inside a temporary staging folder in %TEMP% so they NEVER appear or get deleted in settings.OutputPath.
+        var stagingDir = Path.Combine(Path.GetTempPath(), "LectureSmith", $"export_staging_{Guid.NewGuid():N}");
+        var stagingSlidesDir = Path.Combine(stagingDir, "slides");
 
         try
         {
+            Directory.CreateDirectory(stagingSlidesDir);
+            foreach (var imgPath in result.SlideImagePaths)
+            {
+                if (File.Exists(imgPath))
+                {
+                    var destPath = Path.Combine(stagingSlidesDir, Path.GetFileName(imgPath));
+                    File.Copy(imgPath, destPath, overwrite: true);
+                }
+            }
+
+            ct.ThrowIfCancellationRequested();
             return settings.Format switch
             {
-                OutputFormat.Obsidian => await ExportObsidianAsync(result, settings, baseName),
-                OutputFormat.HTML => await ExportHtmlAsync(result, settings, baseName),
-                OutputFormat.PDF => await ExportPdfAsync(result, settings, baseName),
+                OutputFormat.HTML => await ExportHtmlAsync(result, settings, baseName, stagingDir),
+                OutputFormat.PDF => await ExportPdfAsync(result, settings, baseName, stagingDir),
                 _ => throw new ArgumentOutOfRangeException(nameof(settings.Format))
             };
         }
         finally
         {
-            // For HTML (base64 embedded) and PDF (binary embedded), images are self-contained.
-            // Only Obsidian/Markdown requires the external slides folder to remain on disk.
-            if (settings.Format != OutputFormat.Obsidian && Directory.Exists(slidesOutputDir))
+            if (Directory.Exists(stagingDir))
             {
                 try
                 {
-                    Directory.Delete(slidesOutputDir, recursive: true);
+                    Directory.Delete(stagingDir, recursive: true);
                 }
                 catch
                 {
@@ -68,20 +102,20 @@ public class OutputExporterService
 
     private static async Task<string> ExportObsidianAsync(GenerationResult result, GenerationSettings settings, string baseName)
     {
-        var outputFile = Path.Combine(settings.OutputPath, $"{baseName}.md");
+        var outputFile = GetUniqueFilePath(settings.OutputPath, baseName, ".md");
         await File.WriteAllTextAsync(outputFile, result.MarkdownContent, Encoding.UTF8);
         return outputFile;
     }
 
-    private async Task<string> ExportHtmlAsync(GenerationResult result, GenerationSettings settings, string baseName)
+    private async Task<string> ExportHtmlAsync(GenerationResult result, GenerationSettings settings, string baseName, string imageBasePath)
     {
-        var outputFile = Path.Combine(settings.OutputPath, $"{baseName}.html");
+        var outputFile = GetUniqueFilePath(settings.OutputPath, baseName, ".html");
 
         var pipeline = CreateMarkdownPipeline();
         var htmlBody = Markdig.Markdown.ToHtml(result.MarkdownContent, pipeline);
 
-        // Convert image paths to base64 for self-contained HTML
-        htmlBody = await EmbedImagesAsBase64Async(htmlBody, settings.OutputPath);
+        // Convert image paths to base64 for self-contained HTML using staging directory
+        htmlBody = await EmbedImagesAsBase64Async(htmlBody, imageBasePath);
 
         var fullHtml = $$"""
         <!DOCTYPE html>
@@ -160,9 +194,9 @@ public class OutputExporterService
         return outputFile;
     }
 
-    private async Task<string> ExportPdfAsync(GenerationResult result, GenerationSettings settings, string baseName)
+    private async Task<string> ExportPdfAsync(GenerationResult result, GenerationSettings settings, string baseName, string imageBasePath)
     {
-        var outputFile = Path.Combine(settings.OutputPath, $"{baseName}.pdf");
+        var outputFile = GetUniqueFilePath(settings.OutputPath, baseName, ".pdf");
 
         // Try high-fidelity HTML-to-PDF export via headless browser (Edge / Chrome)
         var browserPath = FindHeadlessBrowserPath();
@@ -174,16 +208,10 @@ public class OutputExporterService
             {
                 var pipeline = CreateMarkdownPipeline();
                 var htmlBody = Markdig.Markdown.ToHtml(result.MarkdownContent, pipeline);
-                htmlBody = await EmbedImagesAsBase64Async(htmlBody, settings.OutputPath);
+                htmlBody = await EmbedImagesAsBase64Async(htmlBody, imageBasePath);
 
                 var printableHtml = BuildPrintableHtml(baseName, htmlBody);
                 await File.WriteAllTextAsync(tempHtml, printableHtml, Encoding.UTF8);
-
-                // If old outputFile exists, delete it so we ensure a clean, freshly rendered PDF
-                if (File.Exists(outputFile))
-                {
-                    try { File.Delete(outputFile); } catch { }
-                }
 
                 Directory.CreateDirectory(tempUserData);
 
@@ -243,7 +271,7 @@ public class OutputExporterService
 
                     page.Content().PaddingVertical(10).Column(col =>
                     {
-                        RenderMarkdownLines(col, result.MarkdownContent, settings.OutputPath);
+                        RenderMarkdownLines(col, result.MarkdownContent, imageBasePath);
                     });
 
                     page.Footer().AlignCenter().Text(text =>
@@ -674,21 +702,26 @@ public class OutputExporterService
 
     /// <summary>
     /// Converts image src references in HTML to base64 data URIs for self-contained HTML.
+    /// Uses single-pass regex replacement with caching to prevent LOH re-allocations.
     /// </summary>
     private static async Task<string> EmbedImagesAsBase64Async(string html, string basePath)
     {
         var matches = ImageSrcRegex.Matches(html);
+        if (matches.Count == 0) return html;
+
+        var cache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (Match match in matches)
         {
             var originalSrc = match.Groups[1].Value;
-            var fullPath = Path.Combine(basePath, originalSrc);
+            if (cache.ContainsKey(originalSrc)) continue;
 
+            var fullPath = Path.Combine(basePath, originalSrc);
             if (File.Exists(fullPath))
             {
                 var bytes = await File.ReadAllBytesAsync(fullPath);
                 var base64 = Convert.ToBase64String(bytes);
-                var ext = Path.GetExtension(fullPath).TrimStart('.').ToLower();
+                var ext = Path.GetExtension(fullPath).TrimStart('.').ToLowerInvariant();
                 var mimeType = ext switch
                 {
                     "jpg" or "jpeg" => "image/jpeg",
@@ -697,11 +730,18 @@ public class OutputExporterService
                     "svg" => "image/svg+xml",
                     _ => "image/png"
                 };
-                var dataUri = $"data:{mimeType};base64,{base64}";
-                html = html.Replace(originalSrc, dataUri);
+                cache[originalSrc] = $"data:{mimeType};base64,{base64}";
             }
         }
 
-        return html;
+        if (cache.Count == 0) return html;
+
+        return ImageSrcRegex.Replace(html, m =>
+        {
+            var src = m.Groups[1].Value;
+            return cache.TryGetValue(src, out var dataUri)
+                ? m.Value.Replace(src, dataUri)
+                : m.Value;
+        });
     }
 }
