@@ -61,8 +61,11 @@ public class SettingsService
     }
 
     /// <summary>
-    /// Completely wipes all application data (AppData settings, LocalAppData models, Temp caches, crash logs).
-    /// If selfUninstall is true, spawns a detached helper to delete the executable itself after exit.
+    /// Safely wipes internal application cache and configuration (AppData settings, LocalAppData models, Temp caches).
+    /// If selfUninstall is true:
+    ///   - If installed via setup installer, triggers the official Windows uninstaller (unins000.exe).
+    ///   - If running standalone, safely cleans internal application folders and removes the standalone executable.
+    /// User documents and saved lecture notes are NEVER touched.
     /// </summary>
     public static void WipeAllData(bool selfUninstall = false)
     {
@@ -76,20 +79,45 @@ public class SettingsService
         if (selfUninstall && !string.IsNullOrEmpty(Environment.ProcessPath))
         {
             var exePath = Environment.ProcessPath;
-            var psi = new System.Diagnostics.ProcessStartInfo
+            var appDir = Path.GetDirectoryName(exePath);
+            var innoUninstaller = !string.IsNullOrEmpty(appDir) ? Path.Combine(appDir, "unins000.exe") : null;
+
+            // If installed via the official setup wizard, launch the standard Windows uninstaller
+            if (!string.IsNullOrEmpty(innoUninstaller) && File.Exists(innoUninstaller))
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = innoUninstaller,
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+                Environment.Exit(0);
+                return;
+            }
+
+            // Standalone / portable fallback: safe clean-up of internal LectureSmith folders & standalone exe
+            var safeAppData = (Directory.Exists(appData) && appData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
+                ? $"rd /s /q \"{appData}\" & " : "";
+            var safeLocalAppData = (Directory.Exists(localAppData) && localAppData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
+                ? $"rd /s /q \"{localAppData}\" & " : "";
+            var safeTempDir = (Directory.Exists(tempDir) && tempDir.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
+                ? $"rd /s /q \"{tempDir}\" & " : "";
+
+            var psiStandalone = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/c timeout /t 1 /nobreak > NUL & rd /s /q \"{appData}\" & rd /s /q \"{localAppData}\" & rd /s /q \"{tempDir}\" & del /f /q \"{exePath}\"",
+                Arguments = $"/c timeout /t 1 /nobreak > NUL & {safeAppData}{safeLocalAppData}{safeTempDir}del /f /q \"{exePath}\"",
                 CreateNoWindow = true,
                 UseShellExecute = false
             };
-            System.Diagnostics.Process.Start(psi);
+            System.Diagnostics.Process.Start(psiStandalone);
             Environment.Exit(0);
             return;
         }
 
-        try { if (Directory.Exists(appData)) Directory.Delete(appData, true); } catch { }
-        try { if (Directory.Exists(localAppData)) Directory.Delete(localAppData, true); } catch { }
-        try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
+        // Wipe / Reset data mode: strictly delete only internal LectureSmith directories
+        try { if (Directory.Exists(appData) && appData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase)) Directory.Delete(appData, true); } catch { }
+        try { if (Directory.Exists(localAppData) && localAppData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase)) Directory.Delete(localAppData, true); } catch { }
+        try { if (Directory.Exists(tempDir) && tempDir.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase)) Directory.Delete(tempDir, true); } catch { }
     }
 }
