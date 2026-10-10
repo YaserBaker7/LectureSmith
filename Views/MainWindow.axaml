@@ -170,6 +170,25 @@
       <Setter Property="Foreground" Value="White"/>
     </Style>
 
+    <!-- Sub-tab Button (History Studio) -->
+    <Style Selector="Button.tabBtn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+      <Setter Property="Padding" Value="14,7"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.tabBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource ControlHoverBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+    </Style>
+    <Style Selector="Button.tabBtn.active /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSubtleBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AccentSubtleText}"/>
+    </Style>
+
     <!-- Bento Card Container -->
     <Style Selector="Border.card">
       <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
@@ -285,6 +304,12 @@
             <TextBlock Text="Synthesize comprehensive, exam-ready lecture notes and study guides" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
           </StackPanel>
 
+          <!-- When History Active -->
+          <StackPanel IsVisible="{Binding IsHistoryActive}" Spacing="2">
+            <TextBlock Text="Generation History &amp; Study Sessions" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+            <TextBlock Text="Review past lecture notes, browse saved files, and resume follow-up Q&amp;A sessions" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+          </StackPanel>
+
           <!-- When Settings Active -->
           <StackPanel IsVisible="{Binding IsSettingsActive}" Spacing="2">
             <TextBlock Text="Settings &amp; Maintenance" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
@@ -323,7 +348,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                 <TextBlock Grid.Column="0" Text="LectureSmith" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                 <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
-                  <TextBlock Text="v3.0.0" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                  <TextBlock Text="v3.5.0" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
                 </Border>
               </Grid>
               <TextBlock Text="Study &amp; Notes Studio" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
@@ -344,6 +369,16 @@
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                 <TextBlock Text="📊" FontSize="14" VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="1" Text="Workspace" VerticalAlignment="Center"/>
+              </Grid>
+            </Button>
+
+            <!-- History Nav Button -->
+            <Button Classes="navItem"
+                    Classes.active="{Binding IsHistoryActive}"
+                    Command="{Binding NavigateToHistoryCommand}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <TextBlock Text="🕒" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="History" VerticalAlignment="Center"/>
               </Grid>
             </Button>
 
@@ -1090,6 +1125,309 @@
         </StackPanel>
       </ScrollViewer>
 
+      <!-- ════════════════ PAGE 3: DEDICATED HISTORY VIEW ════════════════ -->
+      <Grid Grid.Row="1" IsVisible="{Binding IsHistoryActive}" Margin="24,16,24,20">
+        <Grid ColumnDefinitions="360,16,*">
+
+          <!-- Left Column: Sessions List & Search Master -->
+          <Border Grid.Column="0"
+                  Background="{DynamicResource CardBackground}"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="14"
+                  Padding="16">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+
+              <!-- Top Bar: Title & Total Count -->
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <TextBlock Text="📜" FontSize="16" VerticalAlignment="Center"/>
+                  <TextBlock Text="Past Lectures" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBg}" CornerRadius="12" Padding="8,3" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding FilteredHistorySessions.Count, StringFormat='{}{0} Saved'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}"/>
+                </Border>
+              </Grid>
+
+              <!-- Search Bar -->
+              <TextBox Grid.Row="1"
+                       Text="{Binding HistorySearchQuery}"
+                       Watermark="🔍 Search lectures, courses..."
+                       FontSize="12"
+                       CornerRadius="8"
+                       Padding="10,8"
+                       Background="{DynamicResource InputBackground}"
+                       BorderBrush="{DynamicResource InputBorderBrush}"
+                       Foreground="{DynamicResource TextPrimary}"/>
+
+              <!-- Sessions List -->
+              <Grid Grid.Row="2">
+                <!-- Empty State when no sessions -->
+                <StackPanel IsVisible="{Binding !HasHistorySessions}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Spacing="10" Margin="10,40">
+                  <TextBlock Text="📚" FontSize="40" HorizontalAlignment="Center" Opacity="0.4"/>
+                  <TextBlock Text="No lecture history yet" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
+                  <TextBlock Text="Generated lecture notes will automatically be saved and listed here." FontSize="11.5" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Scrollable Session Cards -->
+                <ScrollViewer IsVisible="{Binding HasHistorySessions}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding FilteredHistorySessions}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="m:HistorySession">
+                        <Border Margin="0,0,0,10"
+                                Padding="12"
+                                CornerRadius="10"
+                                Background="{DynamicResource CardBackgroundSecondary}"
+                                BorderBrush="{DynamicResource CardBorderBrushSubtle}"
+                                BorderThickness="1">
+                          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+
+                            <!-- Row 1: Course Pill + Date -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                              <Border Grid.Column="0" Background="{DynamicResource AccentSubtleBg}" CornerRadius="5" Padding="6,2" HorizontalAlignment="Left">
+                                <TextBlock Text="{Binding DisplayCourse}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+                              </Border>
+                              <TextBlock Grid.Column="1" Text="{Binding FormattedDate}" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Row 2: Lecture Title -->
+                            <TextBlock Grid.Row="1" Text="{Binding DisplayTitle}"
+                                       FontSize="13" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       TextTrimming="CharacterEllipsis"/>
+
+                            <!-- Row 3: Meta & Actions -->
+                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Border Background="{DynamicResource CardBackground}" CornerRadius="4" Padding="5,2" BorderBrush="{DynamicResource CardBorderBrushSubtle}" BorderThickness="1">
+                                  <TextBlock Text="{Binding Format}" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"/>
+                                </Border>
+                                <TextBlock Text="{Binding ChatCountText}" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                              </StackPanel>
+
+                              <!-- Card Buttons: Select and Delete -->
+                              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                <Button Classes="small secondary"
+                                        Command="{Binding $parent[Window].DataContext.SelectHistorySessionCommand}"
+                                        CommandParameter="{Binding}"
+                                        Padding="8,3" FontSize="11" Content="View"/>
+                                <Button Classes="small"
+                                        Command="{Binding $parent[Window].DataContext.DeleteHistorySessionCommand}"
+                                        CommandParameter="{Binding}"
+                                        Padding="6,3" FontSize="11" Foreground="{DynamicResource DangerBrush}"
+                                        ToolTip.Tip="Remove from History (keeps file on disk)" Content="🗑️"/>
+                              </StackPanel>
+                            </Grid>
+
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+
+            </Grid>
+          </Border>
+
+          <!-- Right Column: Detail Studio Panel (Notes Preview + Follow-up Chat) -->
+          <Border Grid.Column="2"
+                  Background="{DynamicResource CardBackground}"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="14"
+                  ClipToBounds="True">
+            <Grid>
+
+              <!-- Empty State: No Session Selected -->
+              <StackPanel IsVisible="{Binding !HasSelectedHistorySession}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Spacing="12">
+                <TextBlock Text="🎓" FontSize="52" HorizontalAlignment="Center" Opacity="0.4"/>
+                <TextBlock Text="Select a Lecture to Review" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Choose a lecture from the list on the left to review the notes or ask follow-up questions." FontSize="12.5" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- Active Selected Session View -->
+              <Grid IsVisible="{Binding HasSelectedHistorySession}" RowDefinitions="Auto,Auto,*">
+
+                <!-- Header Banner -->
+                <Border Grid.Row="0" Background="{DynamicResource CardBackgroundSecondary}"
+                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                        Padding="20,14">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <!-- Title & Details -->
+                    <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding SelectedHistorySession.DisplayCourse}" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                        </Border>
+                        <TextBlock Text="{Binding SelectedHistorySession.FormattedDate}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                      </StackPanel>
+                      <TextBlock Text="{Binding SelectedHistorySession.DisplayTitle}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding SelectedHistorySession.OutputFilePath}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <!-- Top Action Buttons -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <Button Classes="secondary" Command="{Binding OpenSessionFileCommand}" ToolTip.Tip="Open saved note file">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="📄"/>
+                          <TextBlock Text="Open File"/>
+                        </StackPanel>
+                      </Button>
+                      <Button Classes="secondary" Command="{Binding OpenSessionFolderCommand}" ToolTip.Tip="Show file in folder">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="📁"/>
+                          <TextBlock Text="Open Folder"/>
+                        </StackPanel>
+                      </Button>
+                      <Button Classes="secondary" Command="{Binding ResumeSessionInWorkspaceCommand}" ToolTip.Tip="Load notes and follow-up chat into main Workspace studio">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="💬"/>
+                          <TextBlock Text="Workspace"/>
+                        </StackPanel>
+                      </Button>
+                      <Button Classes="small" Command="{Binding DeleteHistorySessionCommand}"
+                              CommandParameter="{Binding SelectedHistorySession}"
+                              Foreground="{DynamicResource DangerBrush}" ToolTip.Tip="Delete session from History list">
+                        <TextBlock Text="🗑️"/>
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+
+                <!-- Navigation Tabs (Notes Preview vs Follow-up Chat) -->
+                <Border Grid.Row="1" Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                        Padding="16,8">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                      <Button Classes="tabBtn" Classes.active="{Binding IsHistoryNotesTabActive}"
+                              Command="{Binding SwitchHistoryTabCommand}" CommandParameter="Notes">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="📝"/>
+                          <TextBlock Text="Lecture Notes"/>
+                        </StackPanel>
+                      </Button>
+                      <Button Classes="tabBtn" Classes.active="{Binding IsHistoryChatTabActive}"
+                              Command="{Binding SwitchHistoryTabCommand}" CommandParameter="Chat">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="💬"/>
+                          <TextBlock Text="Follow-up Chat"/>
+                        </StackPanel>
+                      </Button>
+                    </StackPanel>
+
+                    <!-- Notes Tab: Copy Button -->
+                    <Button Grid.Column="1" Classes="small secondary" IsVisible="{Binding IsHistoryNotesTabActive}"
+                            Command="{Binding CopyHistoryNotesCommand}" Content="📋 Copy Notes"/>
+                  </Grid>
+                </Border>
+
+                <!-- Body: Tab 1 (Lecture Notes) -->
+                <Border Grid.Row="2" IsVisible="{Binding IsHistoryNotesTabActive}"
+                        Background="{DynamicResource PreviewBackground}" Padding="18">
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <SelectableTextBlock Text="{Binding SelectedHistorySession.MarkdownContent}"
+                                         FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                         FontSize="12.5"
+                                         LineHeight="21"
+                                         Foreground="{DynamicResource PreviewText}"
+                                         TextWrapping="Wrap"/>
+                  </ScrollViewer>
+                </Border>
+
+                <!-- Body: Tab 2 (Follow-up Chat) -->
+                <Grid Grid.Row="2" IsVisible="{Binding IsHistoryChatTabActive}" RowDefinitions="*,Auto">
+
+                  <!-- Chat Messages Scroller -->
+                  <ScrollViewer Grid.Row="0" Name="HistoryChatScroller" Padding="18,14" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding HistoryChatMessages}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:ChatMessage">
+                          <Grid Margin="0,6">
+                            <!-- User Message -->
+                            <Border IsVisible="{Binding IsUser}"
+                                    HorizontalAlignment="Right"
+                                    Background="{DynamicResource ChatUserBubbleBg}"
+                                    CornerRadius="14,14,2,14"
+                                    Padding="12,8"
+                                    MaxWidth="550">
+                              <SelectableTextBlock Text="{Binding Content}"
+                                                   Foreground="{DynamicResource ChatUserBubbleFg}"
+                                                   FontSize="12.5"
+                                                   TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- AI Message -->
+                            <Border IsVisible="{Binding !IsUser}"
+                                    HorizontalAlignment="Left"
+                                    Background="{DynamicResource ChatAiBubbleBg}"
+                                    BorderBrush="{DynamicResource ChatAiBubbleBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="14,14,14,2"
+                                    Padding="14,10"
+                                    MaxWidth="680">
+                              <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <TextBlock Text="🤖 LectureSmith Study Assistant" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                                </StackPanel>
+                                <SelectableTextBlock Text="{Binding Content}"
+                                                     Foreground="{DynamicResource ChatAiBubbleFg}"
+                                                     FontSize="12"
+                                                     LineHeight="19"
+                                                     TextWrapping="Wrap"/>
+                              </StackPanel>
+                            </Border>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+
+                  <!-- Chat Input Bar -->
+                  <Border Grid.Row="1" Background="{DynamicResource CardBackgroundSecondary}"
+                          BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                          Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <TextBox Grid.Column="0"
+                               Name="HistoryFollowUpInputBox"
+                               Text="{Binding HistoryFollowUpInput}"
+                               KeyDown="HistoryFollowUpInput_KeyDown"
+                               Watermark="Ask a follow-up question about this lecture (e.g. Explain slide 3 or test me)..."
+                               FontSize="12"
+                               CornerRadius="8"
+                               Padding="12,9"
+                               Background="{DynamicResource InputBackground}"
+                               BorderBrush="{DynamicResource InputBorderBrush}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               IsEnabled="{Binding !IsSendingHistoryFollowUp}"/>
+                      <Button Grid.Column="1"
+                              Classes="primary"
+                              Command="{Binding SendHistoryFollowUpCommand}"
+                              IsEnabled="{Binding !IsSendingHistoryFollowUp}"
+                              Padding="18,8"
+                              CornerRadius="8">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="Send"/>
+                          <TextBlock Text="➔"/>
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </Border>
+
+                </Grid>
+
+              </Grid>
+
+            </Grid>
+          </Border>
+
+        </Grid>
+      </Grid>
     </Grid>
     </Grid>
 

@@ -80,6 +80,15 @@ public partial class MainWindow : Window
                         scroller?.ScrollToEnd();
                     });
                 };
+
+                vm.HistoryChatMessages.CollectionChanged += (sender, args) =>
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        var scroller = this.FindControl<ScrollViewer>("HistoryChatScroller");
+                        scroller?.ScrollToEnd();
+                    });
+                };
             }
         };
 
@@ -188,6 +197,21 @@ public partial class MainWindow : Window
                 if (vm.SendFollowUpCommand.CanExecute(null))
                 {
                     vm.SendFollowUpCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+        }
+    }
+
+    private void HistoryFollowUpInput_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                if (vm.SendHistoryFollowUpCommand.CanExecute(null))
+                {
+                    vm.SendHistoryFollowUpCommand.Execute(null);
                     e.Handled = true;
                 }
             }

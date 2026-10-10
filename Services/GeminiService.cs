@@ -110,16 +110,30 @@ public class GeminiService
     /// <summary>
     /// Starts a chat session primed with the generated notes as context.
     /// Uses Gemini's ChatSession which maintains conversation history server-side.
+    /// Can optionally restore previous conversation messages when resuming a session from history.
     /// </summary>
-    public void StartChatSession(string systemPrompt, string initialContext)
+    public void StartChatSession(string systemPrompt, string initialContext, IEnumerable<LectureSmith.Models.ChatMessage>? previousMessages = null)
     {
         EnsureModelConfigured();
 
-        _chatSession = _model!.StartChat(history:
-        [
+        var historyList = new List<ContentResponse>
+        {
             new ContentResponse($"{systemPrompt}\n\nHere are the lecture notes I just generated:\n\n{initialContext}", "user"),
             new ContentResponse("I've reviewed the lecture notes. I'm ready to answer any follow-up questions you have about this material. What would you like to know?", "model")
-        ]);
+        };
+
+        if (previousMessages != null)
+        {
+            foreach (var msg in previousMessages)
+            {
+                if (!msg.IsUser && msg.Content.StartsWith("I've reviewed the lecture notes", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                historyList.Add(new ContentResponse(msg.Content, msg.IsUser ? "user" : "model"));
+            }
+        }
+
+        _chatSession = _model!.StartChat(history: historyList);
     }
 
     /// <summary>
@@ -160,7 +174,14 @@ public class GeminiService
             {
                 throw;
             }
-            catch (Exception ex) when (attempt <= maxRetries && (ex.Message.Contains("429") || ex.Message.Contains("Quota") || ex.Message.Contains("503") || ex.Message.Contains("500")))
+            catch (Exception ex) when (attempt <= maxRetries && (
+                ex.Message.Contains("429") ||
+                ex.Message.Contains("Quota") ||
+                ex.Message.Contains("503") ||
+                ex.Message.Contains("500") ||
+                ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
+                ex is HttpRequestException ||
+                ex is System.IO.IOException))
             {
                 await Task.Delay((int)Math.Pow(2, attempt) * 1000, ct);
             }
@@ -325,26 +346,13 @@ public class GeminiService
         }
         catch (Exception ex)
         {
-            // If we already got partial content, return it with a warning
-            // instead of losing everything
+            // If we already got partial content, return it cleanly so NoteGeneratorService
+            // can rewind to the incomplete slide and seamlessly continue.
             if (fullResponse.Length > 0)
             {
-                fullResponse.AppendLine();
-                fullResponse.AppendLine();
-                fullResponse.AppendLine($"> [!WARNING] Generation was interrupted: {ex.Message}");
                 return fullResponse.ToString();
             }
             throw new InvalidOperationException($"Gemini API error: {ex.Message}", ex);
-        }
-
-        // Warn if the model stopped due to token limits
-        if (lastFinishReason != null &&
-            !lastFinishReason.Equals("Stop", StringComparison.OrdinalIgnoreCase) &&
-            !lastFinishReason.Equals("STOP", StringComparison.OrdinalIgnoreCase))
-        {
-            fullResponse.AppendLine();
-            fullResponse.AppendLine();
-            fullResponse.AppendLine($"> [!WARNING] AI output was truncated (reason: {lastFinishReason}). The notes above may be incomplete.");
         }
 
         return fullResponse.ToString();

@@ -4,7 +4,7 @@
 [![Framework](https://img.shields.io/badge/Framework-.NET%209.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI%2011.3-orange.svg)](https://avaloniaui.net/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue.svg)](#)
-[![Version](https://img.shields.io/badge/Version-v3.0.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **LectureSmith** is a modern, high-performance desktop application designed for students and educators. It turns lecture slides (PDFs) and reference textbooks into comprehensive, beautifully structured study notes using **Google AI Studio (Gemini API)**.
@@ -13,7 +13,22 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 
 ---
 
-## 🌟 What's New in v3.0.0
+## 🌟 What's New in v3.5.0
+
+* 🕒 **Dedicated Generation History & Study Sessions Studio:**
+  * **Sidebar Navigation:** Added a 3rd top-level section (**History**) in the navigation sidebar to browse, search, and manage all past lecture generations.
+  * **Master-Detail Studio:** Filter lectures by course name, lecture title, or file name. Preview generated notes with syntax-highlighted typography.
+  * **Interactive Follow-up Q&A Transcripts:** Review complete question-and-answer histories from past study sessions and continue asking questions about any lecture at any time.
+  * **Independent Context Isolation:** Every lecture session is self-contained. Q&A prompts are primed strictly with that lecture's markdown notes (text-only, zero image tokens consumed) so sessions never bleed memory.
+  * **Safe GUI Deletion:** Remove items from the History studio with one click without deleting or modifying any generated files on your computer.
+  * **One-Click Explorer Access:** Jump directly to notes files on disk with **Open File** and **Open Folder** buttons, or load any past session back into the main **Workspace** studio.
+* 🔄 **Seamless Slide Rewind & Silent Auto-Continuation:**
+  * **Incomplete Slide Rewinding:** When generation is halted mid-deck (due to network drops, timeouts, or output token boundaries), LectureSmith automatically pinpoints the interrupted slide (e.g. Slide 19), trims the partial fragment from the draft and live preview, and re-queries Gemini starting cleanly from that slide.
+  * **Full Prior Context Memory:** The AI is provided with all previously generated notes up to that slide as context, ensuring flawless academic depth, terminology, and mathematical formatting continuity.
+  * **Silent Recovery:** No interruption notices, `*Continuing notes from Slide X...*`, or `> [!WARNING]` alert blocks are injected into the notes or preview — the session feels completely continuous and natural.
+  * **Completeness Guarantee:** Ensures the final Key Concepts Summary table is always present, automatically appending it if generation ceased near the end.
+* 🛡️ **Resilient API Handling & High-Demand Awareness:**
+  * Added smart error detection and guidance for Google AI Studio high-demand events (HTTP 503).
 
 * 🎨 **Complete Modern 2026 UI Redesign:**
   * **Navigation Sidebar:** Seamlessly switch between dedicated **Workspace** and **Settings & Maintenance** views.
@@ -137,6 +152,7 @@ LectureSmith/
 │   ├── GeminiModelInfo.cs
 │   ├── GenerationResult.cs
 │   ├── GenerationSettings.cs
+│   ├── HistorySession.cs
 │   ├── LectureMode.cs
 │   ├── NoteLanguage.cs
 │   ├── OutputFormat.cs
@@ -146,6 +162,7 @@ LectureSmith/
 │   └── UploadedFile.cs
 ├── Services/            # Business logic and external APIs
 │   ├── GeminiService.cs
+│   ├── HistoryService.cs
 │   ├── MathFormatter.cs
 │   ├── NoteGeneratorService.cs
 │   ├── OcrService.cs
@@ -170,10 +187,11 @@ LectureSmith/
 
 ## 🚀 Download & Installation
 
-### Option 1: Standalone Release (Recommended)
-Download the pre-compiled, self-contained single-file executable from the [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases) page.
-* No .NET runtime installation required.
-* Double-click `LectureSmith.exe` and start taking notes.
+### Option 1: Windows Setup Installer (Recommended)
+Download the official Windows installer (`LectureSmith-Setup-v3.5.0.exe`) from the [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases) page.
+* **Modern Setup Wizard:** Installs LectureSmith to your system with automatic Start Menu and optional Desktop shortcuts.
+* **Zero Dependencies:** Fully self-contained — no .NET runtime or SDK installation required.
+* **Clean Uninstaller:** Easily uninstall or remove local caches anytime directly from Windows Settings / Installed Apps.
 
 ### Option 2: Build from Source
 1. Ensure [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) is installed.
@@ -188,11 +206,17 @@ Download the pre-compiled, self-contained single-file executable from the [GitHu
    dotnet run
    ```
 
-### Publishing a Standalone Release (.exe)
-```powershell
-dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true
-```
-The output executable is compiled to `bin/Release/net9.0/win-x64/publish/LectureSmith.exe`.
+### Building the Setup Installer (.exe)
+To build the official Windows setup installer yourself:
+1. Publish the self-contained release:
+   ```powershell
+   dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true --self-contained true
+   ```
+2. Compile with Inno Setup:
+   ```powershell
+   iscc installer.iss
+   ```
+The output installer is generated at `Output/LectureSmith-Setup-v3.5.0.exe`.
 
 ---
 

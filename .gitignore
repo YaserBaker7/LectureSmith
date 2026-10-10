@@ -22,5 +22,6 @@ Desktop.ini
 settings.json
 *.local
 
-# Ignore the compiled executable so it is not committed (publish as release asset instead)
+# Ignore the compiled executable and installer outputs so they are not committed (publish as release assets instead)
 LectureSmith.exe
+[Oo]utput/

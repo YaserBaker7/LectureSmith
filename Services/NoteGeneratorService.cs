@@ -24,6 +24,7 @@ public class NoteGeneratorService
     /// </summary>
     public async Task<GenerationResult> GenerateAsync(GenerationSettings settings,
         IProgress<ProgressUpdate>? progress = null, IProgress<string>? liveText = null,
+        Action<string>? onResetPreview = null,
         CancellationToken ct = default)
     {
         var result = new GenerationResult();
@@ -89,53 +90,99 @@ public class NoteGeneratorService
         result.MarkdownContent = await CallGeminiAsync(settings, systemPrompt, userContent,
             result.SlideImagePaths, progress, liveText, ct);
 
-        // Step 6: Verify completeness and auto-continue if AI stopped early
+        // Step 6: Verify completeness and seamlessly resume if AI stopped early (interruption or token limit)
         if (slideTexts.Count > 0)
         {
             int lastCoveredSlide = FindHighestCoveredSlide(result.MarkdownContent);
             int continuationAttempt = 0;
-            const int maxContinuations = 4;
+            const int maxContinuations = 5;
 
             while (lastCoveredSlide < slideTexts.Count && continuationAttempt < maxContinuations)
             {
                 ct.ThrowIfCancellationRequested();
                 continuationAttempt++;
-                int startSlide = lastCoveredSlide + 1;
+
+                // The incomplete slide that was cut off mid-way is lastCoveredSlide (or slide 1 if nothing completed)
+                int startSlide = Math.Max(1, lastCoveredSlide);
+
+                // Strip the incomplete slide content and any trailing partial sentences from markdown
+                result.MarkdownContent = StripSlideAndBeyond(result.MarkdownContent, startSlide);
+
+                // Rewind the UI live preview text so the screen cleanly removes the partial fragment
+                onResetPreview?.Invoke(result.MarkdownContent);
 
                 progress?.Report(new ProgressUpdate(
-                    $"AI covered up to Slide {lastCoveredSlide} of {slideTexts.Count}. Auto-continuing for remaining slides...",
-                    30 + (int)(60.0 * lastCoveredSlide / slideTexts.Count)));
+                    $"Generating notes (Slide {startSlide} of {slideTexts.Count})...",
+                    30 + (int)(60.0 * (startSlide - 1) / slideTexts.Count)));
 
-                // Strip premature summary table so it can be re-appended at the very end
-                result.MarkdownContent = StripPrematureSummaryTable(result.MarkdownContent);
-
-                // Build continuation user content containing only remaining slides
+                // Build continuation user content containing remaining slides
                 var continuationUserContent = BuildContinuationUserContent(slideTexts, bookTexts, settings, startSlide);
-                var continuationPrompt = $"You previously generated lecture notes up to Slide {lastCoveredSlide}. " +
-                                         $"There are {slideTexts.Count} slides total in this lecture. " +
-                                         $"Now CONTINUE generating notes starting from Slide {startSlide} through Slide {slideTexts.Count}. " +
-                                         $"Follow the exact same format and style as before. " +
-                                         $"Start directly with '## Slide {startSlide} — [Title]'. Do NOT repeat previous slides or write an introduction. " +
+
+                // Provide previously generated notes so the AI maintains perfect academic continuity and tone
+                var previousNotesContext = string.IsNullOrWhiteSpace(result.MarkdownContent)
+                    ? string.Empty
+                    : $"=== PREVIOUSLY GENERATED NOTES (Up to Slide {startSlide - 1}) ===\n" +
+                      $"{result.MarkdownContent}\n\n" +
+                      $"---\n\n";
+
+                var continuationPrompt = $"{previousNotesContext}" +
+                                         $"You are continuing the lecture notes from where you left off. " +
+                                         $"The student has already received the notes up through Slide {startSlide - 1}. " +
+                                         $"There are {slideTexts.Count} slides total in this lecture deck. " +
+                                         $"Now CONTINUE generating notes starting directly from Slide {startSlide} through Slide {slideTexts.Count}. " +
+                                         $"Maintain the exact same tone, academic depth, and formatting as before. " +
+                                         $"Start immediately with '## Slide {startSlide} — [Title]'. Do NOT repeat previous slides or write an introduction. " +
                                          $"Only write the Key Concepts Summary table AFTER Slide {slideTexts.Count}.";
 
                 var remainingImages = result.SlideImagePaths.Count >= slideTexts.Count
                     ? result.SlideImagePaths.Skip(startSlide - 1).ToList()
                     : result.SlideImagePaths;
 
-                liveText?.Report($"\n\n---\n*Continuing notes from Slide {startSlide}...*\n\n");
+                try
+                {
+                    var continuationMarkdown = await CallGeminiAsync(settings, systemPrompt,
+                        $"{continuationPrompt}\n\n{continuationUserContent}",
+                        remainingImages, progress, liveText, ct);
 
-                var continuationMarkdown = await CallGeminiAsync(settings, systemPrompt,
-                    $"{continuationPrompt}\n\n{continuationUserContent}",
-                    remainingImages, progress, liveText, ct);
-
-                result.MarkdownContent = result.MarkdownContent.TrimEnd() + "\n\n" + continuationMarkdown.TrimStart();
+                    result.MarkdownContent = result.MarkdownContent.TrimEnd() + "\n\n" + continuationMarkdown.TrimStart();
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception) when (continuationAttempt < maxContinuations)
+                {
+                    // Brief backoff on network drop before retrying continuation
+                    await Task.Delay(1500 * continuationAttempt, ct);
+                    continue;
+                }
 
                 int newHighest = FindHighestCoveredSlide(result.MarkdownContent);
-                if (newHighest <= lastCoveredSlide)
+                if (newHighest <= lastCoveredSlide && newHighest > 0)
                 {
                     break;
                 }
                 lastCoveredSlide = newHighest;
+            }
+
+            // Ensure summary table exists at the end of the notes
+            if (lastCoveredSlide >= slideTexts.Count &&
+                !result.MarkdownContent.Contains("| Concept |", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var summaryPrompt = $"The lecture notes covering all {slideTexts.Count} slides are complete. " +
+                                        $"Now write ONLY the final Key Concepts Summary table for this entire lecture. " +
+                                        $"Do not repeat any slide notes. Start directly with '## Key Concepts Summary' followed by the markdown table.";
+                    var summaryMarkdown = await CallGeminiAsync(settings, systemPrompt,
+                        $"{summaryPrompt}\n\n{result.MarkdownContent}",
+                        [], progress, liveText, ct);
+                    result.MarkdownContent = result.MarkdownContent.TrimEnd() + "\n\n" + summaryMarkdown.TrimStart();
+                }
+                catch
+                {
+                    // Non-critical: ignore if final summary table auto-append fails
+                }
             }
         }
 
@@ -270,6 +317,12 @@ public class NoteGeneratorService
         sb.AppendLine();
 
         AppendFormatInstructions(sb, settings.Format);
+
+        sb.AppendLine();
+        sb.AppendLine("EXPLANATION CLARITY & SIMPLIFICATION:");
+        sb.AppendLine("- If the language, academic terminology, or concepts on the slides are dense, complex, or difficult to understand, break them down using simpler, more intuitive language.");
+        sb.AppendLine("- When introducing difficult or formal statements from the slides, provide a simplified explanation alongside it (e.g., state the formal concept/definition, followed by a clarification such as: '... meaning [plain-language / easy version]').");
+        sb.AppendLine("- Help the student build intuition for what the material actually means rather than just repeating dense textbook phrasing.");
 
         sb.AppendLine();
         sb.AppendLine("VISUAL ELEMENTS (Diagrams, Figures, Charts):");
@@ -460,6 +513,38 @@ public class NoteGeneratorService
         }
 
         return max;
+    }
+
+    /// <summary>
+    /// Strips the content of the specified slide number and everything after it,
+    /// removing incomplete/half-generated text, premature summary tables, and warning notices.
+    /// </summary>
+    public static string StripSlideAndBeyond(string markdown, int slideNumber)
+    {
+        if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
+
+        // 1. Strip premature summary table first
+        markdown = StripPrematureSummaryTable(markdown);
+
+        // 2. Strip any warning blocks if present
+        markdown = Regex.Replace(markdown, @"(?m)^\s*>\s*\[!WARNING\]\s*Generation was interrupted:.*$", "", RegexOptions.IgnoreCase).TrimEnd();
+
+        // 3. Find where the incomplete slide header starts
+        // Check for line-start markdown headings (e.g. "## Slide 19", "### Slide 19", "# Slide 19")
+        var headingMatch = Regex.Match(markdown, $@"(?m)^\s*#{{1,3}}\s*Slide\s+{slideNumber}\b", RegexOptions.IgnoreCase);
+        if (headingMatch.Success)
+        {
+            return markdown.Substring(0, headingMatch.Index).TrimEnd();
+        }
+
+        // Fallback: check for bold headers (e.g. "**Slide 19**")
+        var boldMatch = Regex.Match(markdown, $@"(?:#{{1,3}}\s*Slide|\*\*Slide)\s+{slideNumber}\b", RegexOptions.IgnoreCase);
+        if (boldMatch.Success)
+        {
+            return markdown.Substring(0, boldMatch.Index).TrimEnd();
+        }
+
+        return markdown.TrimEnd();
     }
 
     /// <summary>

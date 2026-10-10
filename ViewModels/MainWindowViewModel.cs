@@ -28,7 +28,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly OutputExporterService _outputExporterService;
     private readonly OcrService _ocrService;
     private readonly SettingsService _settingsService;
+    private readonly HistoryService _historyService;
     private CancellationTokenSource? _cts;
+    private string? _activeWorkspaceSessionId;
 
     // === Dropdowns ===
     public ObservableCollection<string> Courses { get; } = [];
@@ -75,18 +77,41 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isDarkMode = true;
     [ObservableProperty] private string _currentNav = "Workspace";
 
-    public bool IsWorkspaceActive => !ShowSettings;
-    public bool IsSettingsActive => ShowSettings;
+    public bool IsWorkspaceActive => CurrentNav == "Workspace";
+    public bool IsHistoryActive => CurrentNav == "History";
+    public bool IsSettingsActive => CurrentNav == "Settings";
 
-    public string ActiveModelDisplay => SelectedModel?.DisplayName ?? "Gemini Flash";
-    public string ActiveModelSubtext => SelectedModel?.IsFree == true ? "🟢 Free Tier (1M Context)" : "🔴 Custom Model";
+    partial void OnCurrentNavChanged(string value)
+    {
+        ShowSettings = value == "Settings";
+        OnPropertyChanged(nameof(IsWorkspaceActive));
+        OnPropertyChanged(nameof(IsHistoryActive));
+        OnPropertyChanged(nameof(IsSettingsActive));
+    }
 
     partial void OnShowSettingsChanged(bool value)
     {
         CurrentNav = value ? "Settings" : "Workspace";
-        OnPropertyChanged(nameof(IsWorkspaceActive));
-        OnPropertyChanged(nameof(IsSettingsActive));
     }
+
+    public string ActiveModelDisplay => SelectedModel?.DisplayName ?? "Gemini Flash";
+    public string ActiveModelSubtext => SelectedModel?.IsFree == true ? "🟢 Free Tier (1M Context)" : "🔴 Custom Model";
+
+    // === History Studio ===
+    public ObservableCollection<HistorySession> HistorySessions { get; } = [];
+    public ObservableCollection<HistorySession> FilteredHistorySessions { get; } = [];
+    [ObservableProperty] private HistorySession? _selectedHistorySession;
+    [ObservableProperty] private string _historySearchQuery = string.Empty;
+    [ObservableProperty] private string _historyFollowUpInput = string.Empty;
+    [ObservableProperty] private bool _isSendingHistoryFollowUp;
+    [ObservableProperty] private string _historySessionTab = "Notes";
+    public ObservableCollection<ChatMessage> HistoryChatMessages { get; } = [];
+    private string? _currentActiveHistoryChatSessionId;
+
+    public bool HasHistorySessions => FilteredHistorySessions.Count > 0;
+    public bool HasSelectedHistorySession => SelectedHistorySession != null;
+    public bool IsHistoryNotesTabActive => HistorySessionTab == "Notes";
+    public bool IsHistoryChatTabActive => HistorySessionTab == "Chat";
 
     // === Token estimate & live preview ===
     [ObservableProperty] private string _estimatedTokenInfo = string.Empty;
@@ -118,9 +143,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _noteGeneratorService = new NoteGeneratorService(_pdfExtractorService, _geminiService, _ocrService);
         _outputExporterService = new OutputExporterService();
         _settingsService = new SettingsService();
+        _historyService = new HistoryService();
 
         TempFileCleanupService.RunBackgroundCleanup();
         LoadSettings();
+        LoadHistorySessions();
     }
 
     private void LoadSettings()
@@ -331,9 +358,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
             // Replace the placeholder message with the full response
             var index = ChatMessages.IndexOf(aiMessage);
+            var completedAiMsg = new ChatMessage(response, false);
             if (index >= 0)
             {
-                ChatMessages[index] = new ChatMessage(response, false);
+                ChatMessages[index] = completedAiMsg;
+            }
+
+            // Sync with history session if one is active
+            if (!string.IsNullOrEmpty(_activeWorkspaceSessionId))
+            {
+                var s = HistorySessions.FirstOrDefault(h => h.Id == _activeWorkspaceSessionId);
+                if (s != null)
+                {
+                    s.ChatHistory.Add(new ChatMessage(userMessage, true));
+                    s.ChatHistory.Add(completedAiMsg);
+                    _historyService.SaveSession(s);
+                }
             }
         }
         catch (Exception ex)
@@ -539,13 +579,266 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private void NavigateToWorkspace()
     {
-        ShowSettings = false;
+        CurrentNav = "Workspace";
+    }
+
+    [RelayCommand]
+    private void NavigateToHistory()
+    {
+        LoadHistorySessions();
+        CurrentNav = "History";
     }
 
     [RelayCommand]
     private void NavigateToSettings()
     {
-        ShowSettings = true;
+        CurrentNav = "Settings";
+    }
+
+    // === History Studio Commands & Methods ===
+
+    public void LoadHistorySessions()
+    {
+        var loaded = _historyService.LoadHistory();
+        HistorySessions.Clear();
+        foreach (var s in loaded)
+        {
+            HistorySessions.Add(s);
+        }
+        ApplyHistoryFilter();
+    }
+
+    private void ApplyHistoryFilter()
+    {
+        FilteredHistorySessions.Clear();
+        var q = HistorySearchQuery?.Trim().ToLowerInvariant() ?? "";
+        foreach (var s in HistorySessions)
+        {
+            if (string.IsNullOrEmpty(q) ||
+                s.DisplayTitle.ToLowerInvariant().Contains(q) ||
+                s.DisplayCourse.ToLowerInvariant().Contains(q) ||
+                s.SlidesFileName.ToLowerInvariant().Contains(q))
+            {
+                FilteredHistorySessions.Add(s);
+            }
+        }
+        OnPropertyChanged(nameof(HasHistorySessions));
+        if (SelectedHistorySession == null || !FilteredHistorySessions.Contains(SelectedHistorySession))
+        {
+            SelectedHistorySession = FilteredHistorySessions.FirstOrDefault();
+        }
+    }
+
+    partial void OnHistorySearchQueryChanged(string value)
+    {
+        ApplyHistoryFilter();
+    }
+
+    partial void OnSelectedHistorySessionChanged(HistorySession? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedHistorySession));
+        HistoryChatMessages.Clear();
+        _currentActiveHistoryChatSessionId = null;
+
+        if (value != null)
+        {
+            if (value.ChatHistory != null)
+            {
+                foreach (var msg in value.ChatHistory)
+                {
+                    HistoryChatMessages.Add(msg);
+                }
+            }
+            if (HistoryChatMessages.Count == 0)
+            {
+                HistoryChatMessages.Add(new ChatMessage($"I've reviewed your lecture notes for '{value.DisplayTitle}'. Ask me anything about this lecture!", false));
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void SelectHistorySession(HistorySession? session)
+    {
+        if (session != null)
+        {
+            SelectedHistorySession = session;
+        }
+    }
+
+    [RelayCommand]
+    private void DeleteHistorySession(HistorySession? session)
+    {
+        var target = session ?? SelectedHistorySession;
+        if (target == null) return;
+
+        _historyService.DeleteSession(target.Id);
+        HistorySessions.Remove(target);
+        FilteredHistorySessions.Remove(target);
+        OnPropertyChanged(nameof(HasHistorySessions));
+
+        if (SelectedHistorySession == target)
+        {
+            SelectedHistorySession = FilteredHistorySessions.FirstOrDefault();
+        }
+    }
+
+    [RelayCommand]
+    private void SwitchHistoryTab(string tabName)
+    {
+        HistorySessionTab = tabName;
+        OnPropertyChanged(nameof(IsHistoryNotesTabActive));
+        OnPropertyChanged(nameof(IsHistoryChatTabActive));
+    }
+
+    [RelayCommand]
+    private void OpenSessionFile(HistorySession? session)
+    {
+        var target = session ?? SelectedHistorySession;
+        if (target != null && !string.IsNullOrWhiteSpace(target.OutputFilePath) && File.Exists(target.OutputFilePath))
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = target.OutputFilePath,
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSessionFolder(HistorySession? session)
+    {
+        var target = session ?? SelectedHistorySession;
+        if (target != null && !string.IsNullOrWhiteSpace(target.OutputFilePath))
+        {
+            try
+            {
+                if (File.Exists(target.OutputFilePath))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{target.OutputFilePath}\"");
+                }
+                else
+                {
+                    var dir = Path.GetDirectoryName(target.OutputFilePath);
+                    if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = dir,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+            }
+            catch { }
+        }
+    }
+
+    [RelayCommand]
+    private async Task CopyHistoryNotesAsync()
+    {
+        if (SelectedHistorySession == null || string.IsNullOrEmpty(SelectedHistorySession.MarkdownContent)) return;
+        if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow?.Clipboard != null)
+        {
+            await desktop.MainWindow.Clipboard.SetTextAsync(SelectedHistorySession.MarkdownContent);
+        }
+    }
+
+    [RelayCommand]
+    private void ResumeSessionInWorkspace(HistorySession? session)
+    {
+        var target = session ?? SelectedHistorySession;
+        if (target == null) return;
+
+        LivePreview = target.MarkdownContent;
+        if (!string.IsNullOrWhiteSpace(target.CourseName))
+        {
+            SelectedCourse = target.CourseName;
+        }
+
+        ChatMessages.Clear();
+        if (target.ChatHistory != null)
+        {
+            foreach (var msg in target.ChatHistory)
+            {
+                ChatMessages.Add(msg);
+            }
+        }
+        if (ChatMessages.Count == 0)
+        {
+            ChatMessages.Add(new ChatMessage($"I've reviewed your lecture notes for '{target.DisplayTitle}'. Ask me anything about this lecture!", false));
+        }
+
+        var systemPrompt = "You are a helpful study assistant. The student has just generated lecture notes using an AI tool. " +
+                           "They want to ask follow-up questions about the lecture content. " +
+                           "Answer concisely and clearly, referencing the notes when relevant. " +
+                           "If the student asks about something not covered in the notes, say so and provide what you can.";
+
+        _geminiService.StartChatSession(systemPrompt, target.MarkdownContent, target.ChatHistory);
+        IsFollowUpSessionActive = true;
+        _activeWorkspaceSessionId = target.Id;
+
+        NavigateToWorkspace();
+    }
+
+    [RelayCommand]
+    private async Task SendHistoryFollowUp()
+    {
+        if (string.IsNullOrWhiteSpace(HistoryFollowUpInput) || IsSendingHistoryFollowUp || SelectedHistorySession == null || !_geminiService.IsConfigured) return;
+
+        var userMessage = HistoryFollowUpInput.Trim();
+        HistoryFollowUpInput = string.Empty;
+        var userChatMsg = new ChatMessage(userMessage, true);
+        HistoryChatMessages.Add(userChatMsg);
+        SelectedHistorySession.ChatHistory.Add(userChatMsg);
+        IsSendingHistoryFollowUp = true;
+
+        try
+        {
+            if (_currentActiveHistoryChatSessionId != SelectedHistorySession.Id || !_geminiService.HasActiveChat)
+            {
+                var systemPrompt = "You are a helpful study assistant. The student has just generated lecture notes using an AI tool. " +
+                                   "They want to ask follow-up questions about the lecture content. " +
+                                   "Answer concisely and clearly, referencing the notes when relevant. " +
+                                   "If the student asks about something not covered in the notes, say so and provide what you can.";
+
+                _geminiService.StartChatSession(systemPrompt, SelectedHistorySession.MarkdownContent, SelectedHistorySession.ChatHistory);
+                _currentActiveHistoryChatSessionId = SelectedHistorySession.Id;
+            }
+
+            var responseBuilder = new StringBuilder();
+            var aiMessage = new ChatMessage("", false);
+            HistoryChatMessages.Add(aiMessage);
+
+            var streamProgress = new Progress<string>(chunk =>
+            {
+                responseBuilder.Append(chunk);
+            });
+
+            var response = await _geminiService.SendChatMessageAsync(userMessage, streamProgress);
+
+            var index = HistoryChatMessages.IndexOf(aiMessage);
+            var completedAiMsg = new ChatMessage(response, false);
+            if (index >= 0)
+            {
+                HistoryChatMessages[index] = completedAiMsg;
+            }
+            SelectedHistorySession.ChatHistory.Add(completedAiMsg);
+            _historyService.SaveSession(SelectedHistorySession);
+            OnPropertyChanged(nameof(SelectedHistorySession));
+        }
+        catch (Exception ex)
+        {
+            HistoryChatMessages.Add(new ChatMessage($"Error: {ex.Message}", false));
+        }
+        finally
+        {
+            IsSendingHistoryFollowUp = false;
+        }
     }
 
     [RelayCommand]
@@ -699,7 +992,14 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 LivePreview = previewBuilder.ToString();
             });
 
-            result = await _noteGeneratorService.GenerateAsync(settings, progress, liveTextProgress, _cts.Token);
+            Action<string> resetPreview = text =>
+            {
+                previewBuilder.Clear();
+                previewBuilder.Append(text);
+                LivePreview = text;
+            };
+
+            result = await _noteGeneratorService.GenerateAsync(settings, progress, liveTextProgress, resetPreview, _cts.Token);
 
             if (!string.IsNullOrEmpty(result?.MarkdownContent))
             {
@@ -710,6 +1010,26 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             ProgressPercent = 95;
 
             var outputFile = await _outputExporterService.ExportAsync(result!, settings, _cts.Token);
+
+            // Record history session
+            var lectureTitle = ExtractLectureTitle(result?.MarkdownContent) ??
+                               (!string.IsNullOrWhiteSpace(settings.SlidesFile?.FileName) ? Path.GetFileNameWithoutExtension(settings.SlidesFile.FileName) : "Lecture Notes");
+            var historySession = new HistorySession
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Timestamp = DateTime.Now,
+                CourseName = settings.CourseName,
+                LectureTitle = lectureTitle,
+                SlidesFileName = settings.SlidesFile?.FileName ?? string.Empty,
+                OutputFilePath = outputFile,
+                Format = settings.Format,
+                Mode = settings.Mode,
+                MarkdownContent = result?.MarkdownContent ?? string.Empty,
+                ChatHistory = []
+            };
+            _historyService.SaveSession(historySession);
+            _activeWorkspaceSessionId = historySession.Id;
+            LoadHistorySessions();
 
             // Record token usage
             var outputTokens = (result?.MarkdownContent?.Length ?? 0) / 4;
@@ -747,8 +1067,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
         catch (Exception ex)
         {
-            StatusMessage = $"✗ Error: {ex.Message}";
-            ProgressMessage = "Error occurred";
+            if (ex.Message.Contains("503") || ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase))
+            {
+                StatusMessage = "✗ Model is currently experiencing temporary high demand (503). Try switching to another model like Gemini 2.5 Flash in Settings.";
+                ProgressMessage = "Model Busy (503)";
+            }
+            else
+            {
+                StatusMessage = $"✗ Error: {ex.Message}";
+                ProgressMessage = "Error occurred";
+            }
             IsStatusError = true;
         }
         finally
@@ -757,6 +1085,18 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             _cts?.Dispose();
             _cts = null;
         }
+    }
+
+    private static string? ExtractLectureTitle(string? markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown)) return null;
+        var match = System.Text.RegularExpressions.Regex.Match(markdown, @"(?m)^\s*#\s+(.+)$");
+        if (match.Success)
+        {
+            var title = match.Groups[1].Value.Trim();
+            if (!string.IsNullOrWhiteSpace(title)) return title;
+        }
+        return null;
     }
 
     [RelayCommand]
@@ -778,6 +1118,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         SettingsService.WipeAllData(selfUninstall: false);
         _settingsService.Reset();
+        _historyService.ClearHistory();
 
         ApiKey = string.Empty;
         IsApiKeyValid = false;
@@ -788,6 +1129,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         ChatMessages.Clear();
         LivePreview = string.Empty;
         EstimatedTokenInfo = string.Empty;
+        HistorySessions.Clear();
+        FilteredHistorySessions.Clear();
+        SelectedHistorySession = null;
+        HistoryChatMessages.Clear();
         ShowWipeConfirmation = false;
         WipeStatusMessage = "✓ All settings, history, and cached data have been completely wiped.";
         UpdateTokenStatsDisplay();

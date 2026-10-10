@@ -2,7 +2,7 @@
 ; Generates a modern Windows Installer and Uninstaller registered in Control Panel / Installed Apps
 
 #define MyAppName "LectureSmith"
-#define MyAppVersion "3.0.0"
+#define MyAppVersion "3.5.0"
 #define MyAppPublisher "LectureSmith"
 #define MyAppURL "https://github.com/YaserBaker7/LectureSmith"
 #define MyAppExeName "LectureSmith.exe"
