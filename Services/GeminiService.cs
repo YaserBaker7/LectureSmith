@@ -62,6 +62,7 @@ public class GeminiService
         _model = _googleAi.GenerativeModel(
             model: modelId,
             generationConfig: genConfig);
+        _model.Timeout = TimeSpan.FromMinutes(15);
     }
 
     /// <summary>
@@ -170,7 +171,7 @@ public class GeminiService
             {
                 return await action();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 throw;
             }
@@ -181,6 +182,8 @@ public class GeminiService
                 ex.Message.Contains("500") ||
                 ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
                 ex is HttpRequestException ||
+                ex is TimeoutException ||
+                ex is TaskCanceledException ||
                 ex is System.IO.IOException))
             {
                 await Task.Delay((int)Math.Pow(2, attempt) * 1000, ct);
@@ -340,7 +343,7 @@ public class GeminiService
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
         }
