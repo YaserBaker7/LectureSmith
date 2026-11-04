@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Version-v3.5.1-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**LectureSmith** is a cross-platform desktop application designed for students and educators. It transforms lecture slides (PDFs) and reference textbooks into comprehensive, beautifully formatted study notes using **Google AI Studio (Gemini API)**.
+**LectureSmith** is a modern Windows desktop application designed for students and educators. It transforms lecture slides (PDFs) and reference textbooks into comprehensive, beautifully formatted study notes using **Google AI Studio (Gemini API)**.
 
 Upload lecture slides, optionally attach reference textbook chapters, choose your study mode, and export directly to **Obsidian Markdown**, **self-contained HTML**, or **printable PDF**.
 
