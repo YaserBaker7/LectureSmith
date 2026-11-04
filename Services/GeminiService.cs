@@ -39,19 +39,40 @@ public class GeminiService
         _apiKey = apiKey;
         _googleAi = new GoogleAI(apiKey);
         _model = null;
+        _chatSession = null;
     }
 
-    public void SetModel(string modelId, bool thinkingEnabled = false)
+    public void SetModel(string modelId, bool thinkingEnabled = false, int? outputTokenLimit = null)
     {
-        if (_googleAi == null) return;
+        if (string.IsNullOrWhiteSpace(_apiKey)) return;
+
+        // Fresh GoogleAI client instance to discard any prior failed request/model state
+        _googleAi = new GoogleAI(_apiKey);
+        _chatSession = null;
+
+        var lowerId = modelId.ToLowerInvariant();
+
+        // Determine safe MaxOutputTokens: 1.5/1.0 models cap at 8192; 2.0/2.5 can handle 65536
+        int? maxTokens = outputTokenLimit;
+        if (!maxTokens.HasValue)
+        {
+            if (lowerId.Contains("1.5") || lowerId.Contains("1.0"))
+                maxTokens = 8192;
+            else if (lowerId.Contains("2.0") || lowerId.Contains("2.5"))
+                maxTokens = 65536;
+        }
+        else if (maxTokens.Value > 65536)
+        {
+            maxTokens = 65536;
+        }
 
         var genConfig = new GenerationConfig
         {
-            MaxOutputTokens = 65536,
+            MaxOutputTokens = maxTokens,
             Temperature = 0.7f
         };
 
-        if (thinkingEnabled)
+        if (thinkingEnabled && (lowerId.Contains("thinking") || lowerId.Contains("2.5") || lowerId.Contains("2.0")))
         {
             genConfig.ThinkingConfig = new ThinkingConfig
             {
@@ -181,10 +202,10 @@ public class GeminiService
                 ex.Message.Contains("503") ||
                 ex.Message.Contains("500") ||
                 ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
-                ex is HttpRequestException ||
-                ex is TimeoutException ||
-                ex is TaskCanceledException ||
-                ex is System.IO.IOException))
+                ex is HttpRequestException || ex.InnerException is HttpRequestException ||
+                ex is TimeoutException || ex.InnerException is TimeoutException ||
+                ex is TaskCanceledException || ex.InnerException is TaskCanceledException ||
+                ex is System.IO.IOException || ex.InnerException is System.IO.IOException))
             {
                 await Task.Delay((int)Math.Pow(2, attempt) * 1000, ct);
             }
@@ -261,7 +282,13 @@ public class GeminiService
                         if (!supportsGen) continue;
                     }
 
-                    fetchedList.Add(new GeminiModelInfo(id, $"{dispName}", isFree));
+                    int? outputLimit = null;
+                    if (modelElement.TryGetProperty("outputTokenLimit", out var otl) && otl.TryGetInt32(out var otlVal))
+                    {
+                        outputLimit = otlVal;
+                    }
+
+                    fetchedList.Add(new GeminiModelInfo(id, $"{dispName}", isFree, outputLimit));
                 }
             }
 

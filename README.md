@@ -4,95 +4,25 @@
 [![Framework](https://img.shields.io/badge/Framework-.NET%209.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI%2011.3-orange.svg)](https://avaloniaui.net/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue.svg)](#)
-[![Version](https://img.shields.io/badge/Version-v3.5.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.1-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**LectureSmith** is a modern, high-performance desktop application designed for students and educators. It turns lecture slides (PDFs) and reference textbooks into comprehensive, beautifully structured study notes using **Google AI Studio (Gemini API)**.
+**LectureSmith** is a cross-platform desktop application designed for students and educators. It transforms lecture slides (PDFs) and reference textbooks into comprehensive, beautifully formatted study notes using **Google AI Studio (Gemini API)**.
 
-Students can upload their lecture slides, optionally attach relevant textbook chapters to enrich the notes, select target courses, and export directly to **Obsidian Markdown**, **self-contained HTML**, or **printable PDF**.
-
----
-
-## 🌟 What's New in v3.5.0
-
-* 🕒 **Dedicated Generation History & Study Sessions Studio:**
-  * **Sidebar Navigation:** Added a 3rd top-level section (**History**) in the navigation sidebar to browse, search, and manage all past lecture generations.
-  * **Master-Detail Studio:** Filter lectures by course name, lecture title, or file name. Preview generated notes with syntax-highlighted typography.
-  * **Interactive Follow-up Q&A Transcripts:** Review complete question-and-answer histories from past study sessions and continue asking questions about any lecture at any time.
-  * **Independent Context Isolation:** Every lecture session is self-contained. Q&A prompts are primed strictly with that lecture's markdown notes (text-only, zero image tokens consumed) so sessions never bleed memory.
-  * **Safe GUI Deletion:** Remove items from the History studio with one click without deleting or modifying any generated files on your computer.
-  * **One-Click Explorer Access:** Jump directly to notes files on disk with **Open File** and **Open Folder** buttons, or load any past session back into the main **Workspace** studio.
-* 🔄 **Seamless Slide Rewind & Silent Auto-Continuation:**
-  * **Incomplete Slide Rewinding:** When generation is halted mid-deck (due to network drops, timeouts, or output token boundaries), LectureSmith automatically pinpoints the interrupted slide (e.g. Slide 19), trims the partial fragment from the draft and live preview, and re-queries Gemini starting cleanly from that slide.
-  * **Full Prior Context Memory:** The AI is provided with all previously generated notes up to that slide as context, ensuring flawless academic depth, terminology, and mathematical formatting continuity.
-  * **Silent Recovery:** No interruption notices, `*Continuing notes from Slide X...*`, or `> [!WARNING]` alert blocks are injected into the notes or preview — the session feels completely continuous and natural.
-  * **Completeness Guarantee:** Ensures the final Key Concepts Summary table is always present, automatically appending it if generation ceased near the end.
-* 🛡️ **Resilient API Handling & High-Demand Awareness:**
-  * Added smart error detection and guidance for Google AI Studio high-demand events (HTTP 503).
-
-* 🎨 **Complete Modern 2026 UI Redesign:**
-  * **Navigation Sidebar:** Seamlessly switch between dedicated **Workspace** and **Settings & Maintenance** views.
-  * **Full-Width Header Bar:** Clean, modern layout matching top desktop applications (VS Code, Figma) with zero crossed border lines.
-  * **Bento Analytics Stat Cards:** Real-time visibility into weekly token usage, monthly billing cycle consumption, active AI model status, and live studio status.
-* 🌓 **High-Contrast Dark & Light Theming Engine:**
-  * Fully responsive Dark and Light color palettes with punchy indigo/violet brand accents, crisp card borders, and optimal text readability.
-  * Instant single-click theme switcher directly in the sidebar footer.
-* ⚡ **Instant App Startup:**
-  * Beautiful branded splash window displaying live workspace initialization progress.
-  * Launches smoothly with zero white flashes or JIT startup lag.
-* 🛑 **Instant Generation Cancellation:**
-  * Cancellation requests immediately abort ongoing tasks across slide extraction, OCR, and AI streaming.
-  * Fully reliable exception handling and resource disposal — the app is instantly ready for another run without locking or restarting.
-* 📋 **Interactive Visual Slide Skipping Modal:**
-  * Visual thumbnail grid to preview and selectively exclude syllabus, intro, or administrative slides.
-  * Skipped slides are still sent to the AI for background lecture context, but clearly annotated as skipped in output notes.
-* 📁 **Smart Duplicate File Protection:**
-  * Re-generating notes for the same course automatically appends ` (1)`, ` (2)`, etc. instead of overwriting existing files.
-* 🧹 **Zero-Trace Slide Staging & Clean Output Folders:**
-  * HTML and PDF exports stage slide assets in temporary cache and embed them directly — output directories remain 100% clean with no unwanted `slides/` subfolders left behind.
-* 📚 **Course History Management:**
-  * Easily remove old or misspelled courses from the dropdown history with one-click `✕` delete buttons.
-* 🖱️ **Micro-Interactions & Scroll Fixes:**
-  * Resolved mouse-wheel hijacking on ComboBoxes — scrolling over the left configuration panel scrolls smoothly without accidental dropdown cycling.
-  * Solid button hover interactions without horizontal bulging or layout shifting.
-* 🛡️ **In-App Data Maintenance & Uninstaller:**
-  * Built-in tools in Settings to wipe local settings, clear caches, or perform a complete application uninstall.
-  * Includes Inno Setup installer script (`installer.iss`) for standard Windows installations.
+Upload lecture slides, optionally attach reference textbook chapters, choose your study mode, and export directly to **Obsidian Markdown**, **self-contained HTML**, or **printable PDF**.
 
 ---
 
 ## 🚀 Key Features
 
-### 📝 Smart Note Generation
-* **Two Study Modes:**
-  * **Missed Lecture (Detailed):** Comprehensive, professor-style explanations for students who missed the lecture entirely.
-  * **Attended Lecture (Concise):** Focused review notes for students who attended and want clean, organized revision notes.
-
-### 🎯 Multi-Modal Input & Textbook Context
-* **Slide Extraction Modes:** Extract raw text, run native OCR scans (Tesseract), or send full slide images directly via Vision AI.
-* **Textbook Integration:** Attach reference textbook PDFs with chapter and page ranges (e.g. `Ch 10, p305-340`) for deeper academic explanations.
-* **Slide Skipping:** Skip administrative, syllabus, or irrelevant slides with a single click.
-
-### 🌍 Multi-Language Support
-* Auto-detect lecture slide language.
-* Target output in **English** or **Danish**.
-
-### 📄 Export Formats
-* **Obsidian Notes (.md):** Includes slide image embeds (`![[slides/slide_XX.png]]`), callouts (`> [!tip]`), LaTeX formulas, and tables.
-* **Self-Contained HTML (.html):** Standalone file with embedded base64 images, styled typography, MathJax 3 LaTeX math typesetting, and dark mode support.
-* **Printable PDF (.pdf):** High-fidelity document layout with vector MathJax LaTeX typesetting, embedded slide images, and Obsidian-like typography via headless browser rendering.
-
-### 🤖 AI Model Discovery & Management
-* Dynamic model discovery querying Google AI API in real time.
-* Free-tier indicators (`Gemini Flash / Lite`) vs. paid model indicators (`Pro / Max`).
-* Optional AI reasoning/thinking mode for complex STEM subjects.
-* Weekly and monthly token usage tracking.
-
-### 🎨 Modern Desktop UI & Theming
-* **Sidebar Navigation:** Distinct Workspace Studio and Settings & Maintenance views.
-* **Instant Dark / Light Mode:** Switch between high-contrast Dark and Light themes with persistent state.
-* **Bento Analytics Overview:** Live stat cards for weekly/monthly tokens, active AI model, and studio readiness.
-* **Follow-up Chat Session:** Review generated notes and chat interactively with the AI study assistant about the lecture material.
+* **Smart Note Generation:** Two tailored modes — **Missed Lecture** (in-depth, professor-style explanations) and **Attended Lecture** (concise, high-yield revision).
+* **Multi-Modal Ingestion:** Supports raw PDF text extraction, native OCR scanning (Tesseract), and full multimodal Vision AI.
+* **Textbook Context Integration:** Attach reference textbook chapters/pages to ground notes in official academic literature.
+* **Interactive Slide Skipping:** Preview thumbnails and selectively exclude syllabus, intro, or administrative slides.
+* **Seamless Slide Rewind:** Automatically recovers from interruptions mid-deck, rewinding incomplete slides and resuming cleanly.
+* **History & Follow-up Q&A Studio:** Browse past generation sessions, review full notes, and chat interactively with an AI study assistant.
+* **Multi-Format Export:** Export to Obsidian Notes (`.md`), self-contained single-file HTML (`.html`), or high-fidelity printable PDF (`.pdf`).
+* **Modern UI & Theming:** High-contrast Dark and Light modes, real-time token tracking, and responsive bento analytics.
 
 ---
 
@@ -102,132 +32,45 @@ Students can upload their lecture slides, optionally attach relevant textbook ch
 |---|---|
 | **Runtime & Language** | C# / .NET 9.0 |
 | **Desktop UI** | Avalonia UI 11.3 (MVVM with CommunityToolkit.Mvvm) |
-| **PDF Extraction** | Docnet.Core |
+| **PDF Extraction** | Docnet.Core & SkiaSharp |
 | **OCR Scanner** | Tesseract OCR 5.2 |
 | **Markdown Processor** | Markdig |
 | **PDF Generation** | Headless Browser Engine (Edge/Chrome) + QuestPDF Fallback |
-| **Math Typesetting** | MathJax 3 + Custom Unicode MathFormatter |
-| **Graphics Library** | SkiaSharp |
 | **AI Integration** | Mscc.GenerativeAI (Google Gemini API) |
-
----
-
-## 📐 Architecture & Pipeline
-
-```mermaid
-graph TD
-    A[Slides PDF] --> B[PdfExtractorService]
-    A2[Reference Book PDF] --> B
-
-    subgraph Extraction Pipeline
-        B -->|Extract Text| C[Docnet]
-        B -->|Extract High-Res Frames| D[SkiaSharp]
-        D -->|Cached Slide Images| E[OcrService / Vision AI]
-    end
-
-    C --> F[NoteGeneratorService]
-    E --> F
-
-    F -->|Construct Prompt + Auto-Continuation| G[GeminiService]
-    G -->|Gemini Stream| H[Live Note Preview]
-
-    H -->|Complete Notes| I[OutputExporterService]
-    I -->|Export Markdown| J[Obsidian .md]
-    I -->|Embed Base64| K[Self-Contained HTML]
-    I -->|Headless Browser| L[Printable PDF]
-
-    H -->|Start Q&A| M[Follow-up Session]
-    M -->|Gemini ChatSession| G
-```
-
----
-
-## 📁 Project Structure
-
-```
-LectureSmith/
-├── Models/              # Data models, enums, and DTOs
-│   ├── AppSettings.cs
-│   ├── ChatMessage.cs
-│   ├── GeminiModelInfo.cs
-│   ├── GenerationResult.cs
-│   ├── GenerationSettings.cs
-│   ├── HistorySession.cs
-│   ├── LectureMode.cs
-│   ├── NoteLanguage.cs
-│   ├── OutputFormat.cs
-│   ├── ProgressUpdate.cs
-│   ├── SkippedSlideInfo.cs
-│   ├── SlideProcessingMode.cs
-│   └── UploadedFile.cs
-├── Services/            # Business logic and external APIs
-│   ├── GeminiService.cs
-│   ├── HistoryService.cs
-│   ├── MathFormatter.cs
-│   ├── NoteGeneratorService.cs
-│   ├── OcrService.cs
-│   ├── OutputExporterService.cs
-│   ├── PdfExtractorService.cs
-│   ├── SettingsService.cs
-│   └── TempFileCleanupService.cs
-├── ViewModels/          # MVVM ViewModels
-│   ├── MainWindowViewModel.cs
-│   └── ViewModelBase.cs
-├── Views/               # Avalonia XAML views
-│   ├── MainWindow.axaml
-│   ├── MainWindow.axaml.cs
-│   ├── SplashWindow.axaml
-│   └── SplashWindow.axaml.cs
-├── Assets/              # Icons and styling resources
-│   └── app-icon.ico
-└── installer.iss        # Inno Setup Windows installer script
-```
 
 ---
 
 ## 🚀 Download & Installation
 
-### Option 1: Windows Setup Installer (Recommended)
-Download the official Windows installer (`LectureSmith-Setup-v3.5.0.exe`) from the [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases) page.
-* **Modern Setup Wizard:** Installs LectureSmith to your system with automatic Start Menu and optional Desktop shortcuts.
-* **Zero Dependencies:** Fully self-contained — no .NET runtime or SDK installation required.
-* **Clean Uninstaller:** Easily uninstall or remove local caches anytime directly from Windows Settings / Installed Apps.
+### Windows Setup Installer (Recommended)
+Download the latest Windows installer (`LectureSmith-Setup-v3.5.1.exe`) from [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases).
+* **Self-Contained:** No .NET runtime or SDK installation required.
+* **Standard Installer:** Includes Start Menu shortcuts, optional desktop icon, and clean Windows uninstallation.
 
-### Option 2: Build from Source
-1. Ensure [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) is installed.
-2. Clone the repository:
+### Build from Source
+1. Install [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
+2. Clone and run:
    ```bash
    git clone https://github.com/YaserBaker7/LectureSmith.git
    cd LectureSmith
-   ```
-3. Restore dependencies & run:
-   ```bash
    dotnet restore
    dotnet run
    ```
 
 ### Building the Setup Installer (.exe)
-To build the official Windows setup installer yourself:
-1. Publish the self-contained release:
-   ```powershell
-   dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true --self-contained true
-   ```
-2. Compile with Inno Setup:
-   ```powershell
-   iscc installer.iss
-   ```
-The output installer is generated at `Output/LectureSmith-Setup-v3.5.0.exe`.
+```powershell
+dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true --self-contained true
+iscc installer.iss
+```
+The installer will be generated at `Output/LectureSmith-Setup-v3.5.1.exe`.
 
 ---
 
-## ⚙️ Setup & Configuration
+## ⚙️ Quick Setup
 
-1. **Google AI Studio API Key:**
-   * Get a free API key from [Google AI Studio](https://aistudio.google.com/).
-   * Click the **Settings (⚙)** icon in LectureSmith, paste your key, and click **Save & Validate**.
-   * *Alternative:* Set an environment variable `GEMINI_API_KEY` or `GOOGLE_API_KEY`.
-2. **Settings Persistence:**
-   * Application settings are securely saved to `%APPDATA%\LectureSmith\settings.json`.
+1. **Get an API Key:** Obtain a free API key from [Google AI Studio](https://aistudio.google.com/).
+2. **Configure:** Open **Settings (⚙)** in LectureSmith, paste your key, and click **Save & Validate** (or set environment variable `GEMINI_API_KEY`).
+3. **Generate:** Upload your slides, choose course & format, and click **Generate Notes**.
 
 ---
 

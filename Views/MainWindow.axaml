@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LectureSmith.ViewModels"
         xmlns:m="using:LectureSmith.Models"
@@ -348,7 +348,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                 <TextBlock Grid.Column="0" Text="LectureSmith" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                 <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
-                  <TextBlock Text="v3.5.0" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                  <TextBlock Text="v3.5.1" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
                 </Border>
               </Grid>
               <TextBlock Text="Study &amp; Notes Studio" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
@@ -1262,13 +1262,13 @@
                         Padding="20,14">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <!-- Title & Details -->
-                    <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Border Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding SelectedHistorySession.DisplayCourse}" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                    <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center" ClipToBounds="True">
+                      <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2" VerticalAlignment="Center" Margin="0,0,8,0">
+                          <TextBlock Text="{Binding SelectedHistorySession.DisplayCourse}" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}" TextTrimming="CharacterEllipsis" MaxWidth="280" ToolTip.Tip="{Binding SelectedHistorySession.DisplayCourse}"/>
                         </Border>
                         <TextBlock Text="{Binding SelectedHistorySession.FormattedDate}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
-                      </StackPanel>
+                      </WrapPanel>
                       <TextBlock Text="{Binding SelectedHistorySession.DisplayTitle}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
                       <TextBlock Text="{Binding SelectedHistorySession.OutputFilePath}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>

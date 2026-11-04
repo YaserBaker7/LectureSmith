@@ -1,4 +1,4 @@
-using Docnet.Core;
+﻿using Docnet.Core;
 using Docnet.Core.Models;
 using SkiaSharp;
 
@@ -126,23 +126,40 @@ public class PdfExtractorService
                 for (int i = 0; i < pageCount; i++)
                 {
                     ct.ThrowIfCancellationRequested();
-                    try
-                    {
-                        using var pageReader = docReader.GetPageReader(i);
-                        var rawBytes = pageReader.GetImage();
-                        var width = pageReader.GetPageWidth();
-                        var height = pageReader.GetPageHeight();
 
-                        if (rawBytes is { Length: > 0 } && width > 0 && height > 0)
-                        {
-                            var imagePath = Path.Combine(outputDir, $"slide_{i + 1:D2}.png");
-                            SaveBgraAsPng(rawBytes, width, height, imagePath);
-                            imagePaths.Add(imagePath);
-                        }
-                    }
-                    catch
+                    // Periodically collect to avoid Large Object Heap exhaustion
+                    if (i > 0 && i % 10 == 0)
                     {
-                        // Skip pages that fail to render — don't crash the whole extraction
+                        GC.Collect(1, GCCollectionMode.Optimized);
+                    }
+
+                    bool pageSaved = false;
+                    for (int attempt = 1; attempt <= 3 && !pageSaved; attempt++)
+                    {
+                        try
+                        {
+                            using var pageReader = docReader.GetPageReader(i);
+                            var rawBytes = pageReader.GetImage();
+                            var width = pageReader.GetPageWidth();
+                            var height = pageReader.GetPageHeight();
+
+                            if (rawBytes is { Length: > 0 } && width > 0 && height > 0)
+                            {
+                                var imagePath = Path.Combine(outputDir, $"slide_{i + 1:D2}.png");
+                                SaveBgraAsPng(rawBytes, width, height, imagePath);
+                                imagePaths.Add(imagePath);
+                                pageSaved = true;
+                            }
+                        }
+                        catch
+                        {
+                            if (attempt < 3)
+                            {
+                                GC.Collect(2, GCCollectionMode.Forced, true);
+                                GC.WaitForPendingFinalizers();
+                                Thread.Sleep(100 * attempt);
+                            }
+                        }
                     }
 
                     progress?.Report((i + 1, pageCount));
@@ -184,5 +201,19 @@ public class PdfExtractorService
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         var match = System.Text.RegularExpressions.Regex.Match(fileName, @"\d+");
         return match.Success && int.TryParse(match.Value, out var num) ? num : int.MaxValue;
+    }
+
+/// <summary>
+    /// Checks whether an extracted slide image collection has an unbroken sequence of slides from 1 to expectedTotal.
+    /// </summary>
+    public static bool IsContinuousSlideSequence(List<string> imagePaths, int expectedTotal)
+    {
+        if (imagePaths == null || imagePaths.Count != expectedTotal) return false;
+        for (int i = 0; i < expectedTotal; i++)
+        {
+            var slideNum = GetSlideNumber(imagePaths[i]);
+            if (slideNum != i + 1) return false;
+        }
+        return true;
     }
 }

@@ -1,4 +1,4 @@
-using LectureSmith.Models;
+﻿using LectureSmith.Models;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -36,13 +36,23 @@ public class NoteGeneratorService
             var pdfHash = Path.GetFileNameWithoutExtension(settings.SlidesFile.FilePath).GetHashCode().ToString("X8");
             var slidesDir = Path.Combine(Path.GetTempPath(), "LectureSmith", $"slides_{pdfHash}");
 
+            var expectedSlideCount = _pdfExtractor.GetPageCount(settings.SlidesFile.FilePath);
             if (Directory.Exists(slidesDir))
             {
                 var existing = Directory.GetFiles(slidesDir, "slide_*.png").OrderBy(PdfExtractorService.GetSlideNumber).ToList();
-                if (existing.Count > 0)
+                if (existing.Count == expectedSlideCount && PdfExtractorService.IsContinuousSlideSequence(existing, expectedSlideCount))
                 {
                     result.SlideImagePaths = existing;
                     progress?.Report(new ProgressUpdate("Reusing cached slide images...", 10));
+                }
+                else
+                {
+                    // Cache is partial or missing pages — clear corrupted cache to re-extract fully
+                    try
+                    {
+                        foreach (var f in existing) { File.Delete(f); }
+                    }
+                    catch { }
                 }
             }
 
@@ -432,7 +442,15 @@ public class NoteGeneratorService
             else
             {
                 sb.AppendLine($"--- SLIDE {slideNum} ---");
-                sb.AppendLine(slideTexts[i].Trim());
+                var text = slideTexts[i].Trim();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    sb.AppendLine("[Visual slide: contains diagram, illustration, or graphic without machine-readable text — provide a concise overview heading for this slide]");
+                }
+                else
+                {
+                    sb.AppendLine(text);
+                }
             }
             sb.AppendLine();
         }
@@ -489,30 +507,44 @@ public class NoteGeneratorService
     /// </summary>
     private static int FindHighestCoveredSlide(string markdown)
     {
-        // 1. Look for explicit line-start headings (e.g. "## Slide 31", "### Slide 31", "# Slide 31")
-        var headerMatches = Regex.Matches(markdown, @"(?m)^\s*#{1,3}\s*Slide\s+(\d+)", RegexOptions.IgnoreCase);
-        int max = 0;
-        foreach (Match m in headerMatches)
+        if (string.IsNullOrWhiteSpace(markdown)) return 0;
+
+        // 1. Strip any premature summary table first so table text never skews slide numbering
+        var cleanMarkdown = StripPrematureSummaryTable(markdown);
+
+        // 2. Look for explicit line-start slide headings (e.g. "## Slide 27")
+        var matches = Regex.Matches(cleanMarkdown, @"(?m)^\s*#{1,3}\s*Slide\s+(\d+)\b", RegexOptions.IgnoreCase);
+        if (matches.Count == 0)
         {
-            if (int.TryParse(m.Groups[1].Value, out int num) && num > max && num <= 500)
+            matches = Regex.Matches(cleanMarkdown, @"(?:\*\*Slide)\s+(\d+)\b", RegexOptions.IgnoreCase);
+        }
+
+        if (matches.Count == 0) return 0;
+
+        // 3. Scan backwards from the end of document to locate the last sequential slide section.
+        // Guards against jumping ahead if a slide referenced a far-ahead future slide (e.g. Slide 39 mentioned in Slide 27).
+        for (int i = matches.Count - 1; i >= 0; i--)
+        {
+            if (int.TryParse(matches[i].Groups[1].Value, out int num) && num > 0 && num <= 500)
             {
-                max = num;
+                // Number must be plausibly close to the match count so future cross-references are ignored
+                if (num <= matches.Count + 5)
+                {
+                    return num;
+                }
             }
         }
 
-        if (max > 0) return max;
-
-        // 2. Fallback: match inline bold slide headers like "**Slide 31**" or "## Slide 31" anywhere
-        var fallbackMatches = Regex.Matches(markdown, @"(?:#{1,3}\s*Slide|\*\*Slide)\s*(\d+)", RegexOptions.IgnoreCase);
-        foreach (Match m in fallbackMatches)
+        int safeMax = 0;
+        foreach (Match m in matches)
         {
-            if (int.TryParse(m.Groups[1].Value, out int num) && num > max && num <= 500)
+            if (int.TryParse(m.Groups[1].Value, out int num) && num > safeMax && num <= matches.Count + 5)
             {
-                max = num;
+                safeMax = num;
             }
         }
 
-        return max;
+        return safeMax;
     }
 
     /// <summary>
@@ -594,7 +626,15 @@ public class NoteGeneratorService
             else
             {
                 sb.AppendLine($"--- SLIDE {slideNum} ---");
-                sb.AppendLine(slideTexts[i].Trim());
+                var text = slideTexts[i].Trim();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    sb.AppendLine("[Visual slide: contains diagram, illustration, or graphic without machine-readable text — provide a concise overview heading for this slide]");
+                }
+                else
+                {
+                    sb.AppendLine(text);
+                }
             }
             sb.AppendLine();
         }

@@ -192,9 +192,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         if (!string.IsNullOrWhiteSpace(ApiKey))
         {
             _geminiService.SetApiKey(ApiKey);
-            if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
+                        if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
             {
-                _geminiService.SetModel(SelectedModel.Id, EnableThinking);
+                _geminiService.SetModel(SelectedModel.Id, EnableThinking, SelectedModel.OutputTokenLimit);
             }
             
             // Asynchronously validate the key in the background to avoid blocking the UI thread
@@ -244,7 +244,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             var fetched = await _geminiService.FetchAvailableModelsAsync();
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                var currentId = SelectedModel?.Id ?? _settingsService.Settings.PreferredModelId;
+                var currentId = !string.IsNullOrWhiteSpace(SelectedModel?.Id) ? SelectedModel!.Id : _settingsService.Settings.PreferredModelId;
                 AvailableModels.Clear();
                 if (fetched != null && fetched.Count > 0 && !(fetched.Count == 1 && string.IsNullOrEmpty(fetched[0].Id)))
                 {
@@ -275,9 +275,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedModelChanged(GeminiModelInfo? value)
     {
+        _currentActiveHistoryChatSessionId = null;
+        if (IsStatusError)
+        {
+            StatusMessage = string.Empty;
+            IsStatusError = false;
+        }
+
         if (_geminiService.IsConfigured && value != null && !string.IsNullOrEmpty(value.Id))
         {
-            _geminiService.SetModel(value.Id, EnableThinking);
+            _geminiService.SetModel(value.Id, EnableThinking, value.OutputTokenLimit);
         }
         if (value != null && !string.IsNullOrEmpty(value.Id))
         {
@@ -292,7 +299,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     partial void OnEnableThinkingChanged(bool value)
     {
         if (_geminiService.IsConfigured && SelectedModel != null)
-            _geminiService.SetModel(SelectedModel.Id, value);
+            _geminiService.SetModel(SelectedModel.Id, value, SelectedModel.OutputTokenLimit);
     }
 
     partial void OnSlidesFileChanged(UploadedFile? value)
@@ -538,9 +545,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         ApiKeyStatus = "Validating...";
         _geminiService.SetApiKey(ApiKey);
-        if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
+                    if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
         {
-            _geminiService.SetModel(SelectedModel.Id, EnableThinking);
+            _geminiService.SetModel(SelectedModel.Id, EnableThinking, SelectedModel.OutputTokenLimit);
         }
 
         var (valid, error) = await _geminiService.ValidateApiKeyAsync();
@@ -549,6 +556,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             IsApiKeyValid = true;
             ApiKeyStatus = string.IsNullOrEmpty(error) ? "✓ API key is valid!" : $"✓ {error}";
             _settingsService.Settings.ApiKey = ApiKey;
+            _ = RefreshAvailableModelsAsync();
             _settingsService.Save();
         }
         else
@@ -998,6 +1006,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 previewBuilder.Append(text);
                 LivePreview = text;
             };
+
+            if (SelectedModel != null && !string.IsNullOrEmpty(SelectedModel.Id))
+            {
+                _geminiService.SetModel(SelectedModel.Id, EnableThinking, SelectedModel.OutputTokenLimit);
+            }
 
             result = await _noteGeneratorService.GenerateAsync(settings, progress, liveTextProgress, resetPreview, _cts.Token);
 
