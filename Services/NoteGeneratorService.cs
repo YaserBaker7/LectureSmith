@@ -189,6 +189,10 @@ public class NoteGeneratorService
                         [], progress, liveText, ct);
                     result.MarkdownContent = result.MarkdownContent.TrimEnd() + "\n\n" + summaryMarkdown.TrimStart();
                 }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch
                 {
                     // Non-critical: ignore if final summary table auto-append fails

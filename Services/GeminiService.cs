@@ -83,7 +83,15 @@ public class GeminiService
         _model = _googleAi.GenerativeModel(
             model: modelId,
             generationConfig: genConfig);
-        _model.Timeout = TimeSpan.FromMinutes(15);
+        // BaseModel shares a static HttpClient; Timeout can only be set before the first HTTP request.
+        try
+        {
+            if (_model.Timeout != TimeSpan.FromMinutes(15))
+                _model.Timeout = TimeSpan.FromMinutes(15);
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     /// <summary>
@@ -98,7 +106,7 @@ public class GeminiService
 
         return await ExecuteWithRetryAsync(async () =>
         {
-            var response = _model!.GenerateContentStream(combinedPrompt);
+            var response = _model!.GenerateContentStream(combinedPrompt, cancellationToken: ct);
             return await StreamResponseAsync(response, progress, ct);
         }, 3, ct);
     }
@@ -116,6 +124,7 @@ public class GeminiService
 
         foreach (var imagePath in imagePaths)
         {
+            ct.ThrowIfCancellationRequested();
             if (File.Exists(imagePath))
             {
                 await request.AddMedia(imagePath);
@@ -124,7 +133,7 @@ public class GeminiService
 
         return await ExecuteWithRetryAsync(async () =>
         {
-            var response = _model!.GenerateContentStream(request);
+            var response = _model!.GenerateContentStream(request, cancellationToken: ct);
             return await StreamResponseAsync(response, progress, ct);
         }, 3, ct);
     }
@@ -195,6 +204,10 @@ public class GeminiService
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 throw;
+            }
+            catch (Exception ex) when (ct.IsCancellationRequested)
+            {
+                throw new OperationCanceledException("Generation was cancelled.", ex, ct);
             }
             catch (Exception ex) when (attempt <= maxRetries && (
                 ex.Message.Contains("429") ||
@@ -348,7 +361,7 @@ public class GeminiService
 
         try
         {
-            await foreach (var chunk in response)
+            await foreach (var chunk in response.WithCancellation(ct))
             {
                 ct.ThrowIfCancellationRequested();
 
@@ -376,6 +389,9 @@ public class GeminiService
         }
         catch (Exception ex)
         {
+            if (ct.IsCancellationRequested)
+                throw new OperationCanceledException("Generation was cancelled.", ex, ct);
+
             // If we already got partial content, return it cleanly so NoteGeneratorService
             // can rewind to the incomplete slide and seamlessly continue.
             if (fullResponse.Length > 0)

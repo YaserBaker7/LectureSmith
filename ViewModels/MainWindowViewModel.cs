@@ -1078,6 +1078,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
                 ProgressMessage = "API Timeout";
             }
         }
+        catch (Exception ex) when (_cts != null && _cts.IsCancellationRequested)
+        {
+            IsStatusError = true;
+            StatusMessage = "Generation cancelled.";
+            ProgressMessage = "Cancelled";
+            _ = ex;
+        }
         catch (Exception ex)
         {
             if (ex.Message.Contains("503") || ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase))
