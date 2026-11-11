@@ -26,7 +26,7 @@ public class PdfExtractorService
             return await Task.Run(() =>
             {
                 var pages = new List<string>();
-                using var library = DocLib.Instance;
+                var library = DocLib.Instance;
                 using var docReader = library.GetDocReader(pdfPath, DefaultPageDimensions);
 
                 int pageCount = docReader.GetPageCount();
@@ -79,7 +79,7 @@ public class PdfExtractorService
         {
             return await Task.Run(() =>
             {
-                using var library = DocLib.Instance;
+                var library = DocLib.Instance;
                 using var docReader = library.GetDocReader(pdfPath, DefaultPageDimensions);
                 return docReader.GetPageCount();
             });
@@ -116,62 +116,134 @@ public class PdfExtractorService
         {
             return await Task.Run(() =>
             {
-                var imagePaths = new List<string>();
                 Directory.CreateDirectory(outputDir);
 
-                using var library = DocLib.Instance;
-                using var docReader = library.GetDocReader(pdfPath, dimensions);
-                int pageCount = docReader.GetPageCount();
+                var library = DocLib.Instance;
+                int pageCount;
+                var savedByPage = new Dictionary<int, string>();
+                var failedIndices = new List<int>();
 
-                for (int i = 0; i < pageCount; i++)
+                using (var docReader = library.GetDocReader(pdfPath, dimensions))
                 {
-                    ct.ThrowIfCancellationRequested();
+                    pageCount = docReader.GetPageCount();
 
-                    // Periodically collect to avoid Large Object Heap exhaustion
-                    if (i > 0 && i % 10 == 0)
+                    for (int i = 0; i < pageCount; i++)
                     {
-                        GC.Collect(1, GCCollectionMode.Optimized);
-                    }
+                        ct.ThrowIfCancellationRequested();
 
-                    bool pageSaved = false;
-                    for (int attempt = 1; attempt <= 3 && !pageSaved; attempt++)
-                    {
-                        try
+                        if (i > 0 && i % 10 == 0)
                         {
-                            using var pageReader = docReader.GetPageReader(i);
-                            var rawBytes = pageReader.GetImage();
-                            var width = pageReader.GetPageWidth();
-                            var height = pageReader.GetPageHeight();
-
-                            if (rawBytes is { Length: > 0 } && width > 0 && height > 0)
-                            {
-                                var imagePath = Path.Combine(outputDir, $"slide_{i + 1:D2}.png");
-                                SaveBgraAsPng(rawBytes, width, height, imagePath);
-                                imagePaths.Add(imagePath);
-                                pageSaved = true;
-                            }
+                            GC.Collect(1, GCCollectionMode.Optimized);
                         }
-                        catch
+
+                        var imagePath = Path.Combine(outputDir, $"slide_{i + 1:D2}.png");
+                        if (TryExtractPageWithRetry(docReader, i, imagePath))
                         {
-                            if (attempt < 3)
-                            {
-                                GC.Collect(2, GCCollectionMode.Forced, true);
-                                GC.WaitForPendingFinalizers();
-                                Thread.Sleep(100 * attempt);
-                            }
+                            savedByPage[i] = imagePath;
                         }
-                    }
+                        else
+                        {
+                            failedIndices.Add(i);
+                        }
 
-                    progress?.Report((i + 1, pageCount));
+                        progress?.Report((i + 1, pageCount));
+                    }
                 }
 
-                return imagePaths;
+                // Recovery pass for any pages that failed on the primary reader:
+                // reopen a fresh DocReader, then fall back to preview dimensions if needed.
+                if (failedIndices.Count > 0)
+                {
+                    GC.Collect(2, GCCollectionMode.Forced, true);
+                    GC.WaitForPendingFinalizers();
+
+                    var stillMissing = RecoverFailedPages(
+                        library, pdfPath, dimensions, outputDir, failedIndices, savedByPage, ct);
+
+                    if (stillMissing.Count > 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Could not extract slide(s) {string.Join(", ", stillMissing.Select(idx => idx + 1))} from '{Path.GetFileName(pdfPath)}'.");
+                    }
+                }
+
+                return Enumerable.Range(0, pageCount)
+                    .Select(i => savedByPage[i])
+                    .ToList();
             }, ct);
         }
         finally
         {
             _docnetLock.Release();
         }
+    }
+
+    private static bool TryExtractPageWithRetry(Docnet.Core.Readers.IDocReader docReader, int pageIndex, string imagePath)
+    {
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            try
+            {
+                using var pageReader = docReader.GetPageReader(pageIndex);
+                var rawBytes = pageReader.GetImage();
+                var width = pageReader.GetPageWidth();
+                var height = pageReader.GetPageHeight();
+
+                if (rawBytes is { Length: > 0 } && width > 0 && height > 0)
+                {
+                    SaveBgraAsPng(rawBytes, width, height, imagePath);
+                    if (File.Exists(imagePath) && new FileInfo(imagePath).Length > 0)
+                        return true;
+                }
+            }
+            catch
+            {
+                if (attempt < 3)
+                {
+                    GC.Collect(2, GCCollectionMode.Forced, true);
+                    GC.WaitForPendingFinalizers();
+                    Thread.Sleep(100 * attempt);
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<int> RecoverFailedPages(
+        DocLib library, string pdfPath, PageDimensions primaryDimensions, string outputDir,
+        List<int> failedIndices, Dictionary<int, string> savedByPage, CancellationToken ct)
+    {
+        var remaining = new List<int>();
+        using (var freshReader = library.GetDocReader(pdfPath, primaryDimensions))
+        {
+            foreach (var idx in failedIndices)
+            {
+                ct.ThrowIfCancellationRequested();
+                var imagePath = Path.Combine(outputDir, $"slide_{idx + 1:D2}.png");
+                if (TryExtractPageWithRetry(freshReader, idx, imagePath))
+                    savedByPage[idx] = imagePath;
+                else
+                    remaining.Add(idx);
+            }
+        }
+
+        if (remaining.Count == 0 || primaryDimensions.Equals(PreviewPageDimensions))
+            return remaining;
+
+        var stillMissing = new List<int>();
+        using (var fallbackReader = library.GetDocReader(pdfPath, PreviewPageDimensions))
+        {
+            foreach (var idx in remaining)
+            {
+                ct.ThrowIfCancellationRequested();
+                var imagePath = Path.Combine(outputDir, $"slide_{idx + 1:D2}.png");
+                if (TryExtractPageWithRetry(fallbackReader, idx, imagePath))
+                    savedByPage[idx] = imagePath;
+                else
+                    stillMissing.Add(idx);
+            }
+        }
+        return stillMissing;
     }
 
     /// <summary>

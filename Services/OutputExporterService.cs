@@ -48,11 +48,12 @@ public class OutputExporterService
             Directory.CreateDirectory(slidesOutputDir);
             foreach (var imgPath in result.SlideImagePaths)
             {
-                if (File.Exists(imgPath))
-                {
-                    var destPath = Path.Combine(slidesOutputDir, Path.GetFileName(imgPath));
-                    File.Copy(imgPath, destPath, overwrite: true);
-                }
+                ct.ThrowIfCancellationRequested();
+                if (!File.Exists(imgPath))
+                    throw new FileNotFoundException($"Missing extracted slide image '{imgPath}'.", imgPath);
+
+                var destPath = Path.Combine(slidesOutputDir, Path.GetFileName(imgPath));
+                await CopySlideWithRetryAsync(imgPath, destPath, ct);
             }
 
             ct.ThrowIfCancellationRequested();
@@ -98,6 +99,26 @@ public class OutputExporterService
                 }
             }
         }
+    }
+
+    private static async Task CopySlideWithRetryAsync(string srcPath, string destPath, CancellationToken ct)
+    {
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                File.Copy(srcPath, destPath, overwrite: true);
+                if (File.Exists(destPath) && new FileInfo(destPath).Length > 0)
+                    return;
+            }
+            catch (IOException) when (attempt < 3)
+            {
+                await Task.Delay(150 * attempt, ct);
+            }
+        }
+
+        throw new IOException($"Failed to copy slide image to '{destPath}'.");
     }
 
     private static async Task<string> ExportObsidianAsync(GenerationResult result, GenerationSettings settings, string baseName)

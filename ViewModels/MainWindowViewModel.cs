@@ -410,24 +410,28 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             var pdfHash = Path.GetFileNameWithoutExtension(SlidesFile.FilePath).GetHashCode().ToString("X8");
             var cacheDir = Path.Combine(Path.GetTempPath(), "LectureSmith", $"slides_{pdfHash}");
 
-            List<string> imagePaths;
+            List<string> imagePaths = [];
+            var expectedSlideCount = await _pdfExtractorService.GetPageCountAsync(SlidesFile.FilePath);
 
-            // Reuse cached slide images if they exist on disk
+            // Reuse cached slide images only if the complete sequence 1..N is intact
             if (Directory.Exists(cacheDir))
             {
-                var existing = Directory.GetFiles(cacheDir, "slide_*.png").OrderBy(PdfExtractorService.GetSlideNumber).ToList();
-                if (existing.Count > 0)
+                var existing = Directory.GetFiles(cacheDir, "slide_*.png")
+                    .OrderBy(PdfExtractorService.GetSlideNumber)
+                    .ToList();
+                if (existing.Count == expectedSlideCount &&
+                    PdfExtractorService.IsContinuousSlideSequence(existing, expectedSlideCount))
                 {
                     imagePaths = existing;
                 }
                 else
                 {
-                    imagePaths = await _pdfExtractorService.ExtractSlideImagesAsync(SlidesFile.FilePath, cacheDir);
+                    try { Directory.Delete(cacheDir, recursive: true); } catch { }
                 }
             }
-            else
+
+            if (imagePaths.Count == 0)
             {
-                // Extract full slide photos to the cache directory
                 imagePaths = await _pdfExtractorService.ExtractSlideImagesAsync(SlidesFile.FilePath, cacheDir);
             }
 
