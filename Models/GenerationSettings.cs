@@ -8,14 +8,9 @@ public class GenerationSettings
     public NoteLanguage Language { get; set; } = NoteLanguage.Auto;
     public string ExtraNotes { get; set; } = string.Empty;
     public string OutputPath { get; set; } = string.Empty;
-    public string SelectedModelId { get; set; } = "gemini-2.5-flash";
+    public string SelectedModelId { get; set; } = "gemini-4-hydrogen";
     public SlideProcessingMode SlideProcessing { get; set; } = SlideProcessingMode.TextOnly;
     public UploadedFile? SlidesFile { get; set; }
     public List<UploadedFile> BookFiles { get; set; } = [];
     public HashSet<int> SkippedSlides { get; set; } = [];
-
-    /// <summary>
-    /// Returns the effective course name.
-    /// </summary>
-    public string EffectiveCourseName => CourseName;
 }

@@ -5,47 +5,10 @@ namespace LectureSmith.Services;
 
 /// <summary>
 /// Converts LaTeX math expressions into clean typographical Unicode text
-/// for formats that do not have native LaTeX/MathJax rendering engines (e.g. PDF and Avalonia Preview).
+/// for renderers that do not run MathJax (such as the QuestPDF fallback).
 /// </summary>
-public static class MathFormatter
+public static partial class MathFormatter
 {
-    private static readonly Regex DisplayMathRegex =
-        new(@"(?s)\$\$(.+?)\$\$", RegexOptions.Compiled);
-
-    private static readonly Regex InlineMathRegex =
-        new(@"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)", RegexOptions.Compiled);
-
-    private static readonly Regex TextCommandRegex =
-        new(@"\\text\{([^}]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex MathBfCommandRegex =
-        new(@"\\mathbf\{([^}]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex MathItCommandRegex =
-        new(@"\\mathit\{([^}]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex MathRmCommandRegex =
-        new(@"\\mathrm\{([^}]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex FracCommandRegex =
-        new(@"\\frac\{([^}]+)\}\{([^}]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex SqrtCommandRegex =
-        new(@"\\sqrt(?:\[[^\]]+\])?\{([^}]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex SubscriptBracedRegex =
-        new(@"_\{([0-9a-zA-Z\+\-]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex SuperscriptBracedRegex =
-        new(@"\^\{([0-9a-zA-Z\+\-]+)\}", RegexOptions.Compiled);
-
-    private static readonly Regex SubscriptSingleRegex =
-        new(@"_([0-9a-zA-Z])", RegexOptions.Compiled);
-
-    private static readonly Regex SuperscriptSingleRegex =
-        new(@"\^([0-9a-zA-Z])", RegexOptions.Compiled);
-
-    // Common LaTeX math symbols dictionary
     private static readonly Dictionary<string, string> MathSymbols = new()
     {
         // Logic & Arrows
@@ -96,57 +59,23 @@ public static class MathFormatter
         { @"\int", "∫" },
 
         // Greek lowercase
-        { @"\alpha", "α" },
-        { @"\beta", "β" },
-        { @"\gamma", "γ" },
-        { @"\delta", "δ" },
-        { @"\epsilon", "ε" },
-        { @"\varepsilon", "ε" },
-        { @"\zeta", "ζ" },
-        { @"\eta", "η" },
-        { @"\theta", "θ" },
-        { @"\vartheta", "ϑ" },
-        { @"\iota", "ι" },
-        { @"\kappa", "κ" },
-        { @"\lambda", "λ" },
-        { @"\mu", "μ" },
-        { @"\nu", "ν" },
-        { @"\xi", "ξ" },
-        { @"\pi", "π" },
-        { @"\varpi", "ϖ" },
-        { @"\rho", "ρ" },
-        { @"\varrho", "ϱ" },
-        { @"\sigma", "σ" },
-        { @"\varsigma", "ς" },
-        { @"\tau", "τ" },
-        { @"\upsilon", "υ" },
-        { @"\phi", "φ" },
-        { @"\varphi", "ϕ" },
-        { @"\chi", "χ" },
-        { @"\psi", "ψ" },
+        { @"\alpha", "α" }, { @"\beta", "β" }, { @"\gamma", "γ" }, { @"\delta", "δ" },
+        { @"\epsilon", "ε" }, { @"\varepsilon", "ε" }, { @"\zeta", "ζ" }, { @"\eta", "η" },
+        { @"\theta", "θ" }, { @"\vartheta", "ϑ" }, { @"\iota", "ι" }, { @"\kappa", "κ" },
+        { @"\lambda", "λ" }, { @"\mu", "μ" }, { @"\nu", "ν" }, { @"\xi", "ξ" },
+        { @"\pi", "π" }, { @"\varpi", "ϖ" }, { @"\rho", "ρ" }, { @"\varrho", "ϱ" },
+        { @"\sigma", "σ" }, { @"\varsigma", "ς" }, { @"\tau", "τ" }, { @"\upsilon", "υ" },
+        { @"\phi", "φ" }, { @"\varphi", "ϕ" }, { @"\chi", "χ" }, { @"\psi", "ψ" },
         { @"\omega", "ω" },
 
         // Greek uppercase
-        { @"\Gamma", "Γ" },
-        { @"\Delta", "Δ" },
-        { @"\Theta", "Θ" },
-        { @"\Lambda", "Λ" },
-        { @"\Xi", "Ξ" },
-        { @"\Pi", "Π" },
-        { @"\Sigma", "Σ" },
-        { @"\Upsilon", "Υ" },
-        { @"\Phi", "Φ" },
-        { @"\Psi", "Ψ" },
-        { @"\Omega", "Ω" },
+        { @"\Gamma", "Γ" }, { @"\Delta", "Δ" }, { @"\Theta", "Θ" }, { @"\Lambda", "Λ" },
+        { @"\Xi", "Ξ" }, { @"\Pi", "Π" }, { @"\Sigma", "Σ" }, { @"\Upsilon", "Υ" },
+        { @"\Phi", "Φ" }, { @"\Psi", "Ψ" }, { @"\Omega", "Ω" },
 
         // Spacing commands
-        { @"\,", " " },
-        { @"\;", " " },
-        { @"\:", " " },
-        { @"\!", "" },
-        { @"\quad", "  " },
-        { @"\qquad", "    " },
-        { @"\\", "\n" }
+        { @"\,", " " }, { @"\;", " " }, { @"\:", " " }, { @"\!", "" },
+        { @"\quad", "  " }, { @"\qquad", "    " }, { @"\\", "\n" }
     };
 
     private static readonly KeyValuePair<string, string>[] OrderedMathSymbols =
@@ -172,8 +101,7 @@ public static class MathFormatter
     };
 
     /// <summary>
-    /// Formats a single LaTeX math formula into clean Unicode / Markdown text.
-    /// E.g. "\text{Skewness} = 0.41 \implies \mathbf{Right-Skewed}" -> "Skewness = 0.41 ⟹ **Right-Skewed**"
+    /// Formats a LaTeX math formula into clean Unicode / optional Markdown text, supporting nested braces.
     /// </summary>
     public static string FormatFormula(string latex, bool useMarkdownEmphasis = true)
     {
@@ -181,85 +109,182 @@ public static class MathFormatter
 
         var result = latex.Trim();
 
-        // 1. Convert formatting commands
-        result = TextCommandRegex.Replace(result, m => m.Groups[1].Value);
-        result = MathBfCommandRegex.Replace(result, m => useMarkdownEmphasis ? $"**{m.Groups[1].Value}**" : m.Groups[1].Value);
-        result = MathItCommandRegex.Replace(result, m => useMarkdownEmphasis ? $"*{m.Groups[1].Value}*" : m.Groups[1].Value);
-        result = MathRmCommandRegex.Replace(result, m => m.Groups[1].Value);
+        // 1. Formatting commands (supports nested braces like \mathbf{x_{1}})
+        result = ReplaceSingleArgCommand(result, @"\text", inner => inner);
+        result = ReplaceSingleArgCommand(result, @"\mathrm", inner => inner);
+        result = ReplaceSingleArgCommand(result, @"\mathbf", inner => useMarkdownEmphasis ? $"**{inner}**" : inner);
+        result = ReplaceSingleArgCommand(result, @"\mathit", inner => useMarkdownEmphasis ? $"*{inner}*" : inner);
 
-        // 2. Fractions and roots
-        result = FracCommandRegex.Replace(result, m => $"({m.Groups[1].Value} / {m.Groups[2].Value})");
-        result = SqrtCommandRegex.Replace(result, m => $"√({m.Groups[1].Value})");
+        // 2. Fractions and roots (handles nested braces cleanly)
+        result = ReplaceFracCommands(result);
+        result = ReplaceSqrtCommands(result);
 
-        // 3. Greek and mathematical symbols (longest first to avoid partial replacements)
+        // 3. Greek and mathematical symbols (longest first)
         foreach (var (cmd, symbol) in OrderedMathSymbols)
-        {
             result = result.Replace(cmd, symbol);
-        }
 
         // 4. Superscripts & subscripts
-        result = SuperscriptBracedRegex.Replace(result, m => ToSuperscript(m.Groups[1].Value));
-        result = SubscriptBracedRegex.Replace(result, m => ToSubscript(m.Groups[1].Value));
-        result = SuperscriptSingleRegex.Replace(result, m => ToSuperscript(m.Groups[1].Value));
-        result = SubscriptSingleRegex.Replace(result, m => ToSubscript(m.Groups[1].Value));
+        result = SuperscriptBracedRegex().Replace(result, m => ToSuperscript(m.Groups[1].Value));
+        result = SubscriptBracedRegex().Replace(result, m => ToSubscript(m.Groups[1].Value));
+        result = SuperscriptSingleRegex().Replace(result, m => ToSuperscript(m.Groups[1].Value));
+        result = SubscriptSingleRegex().Replace(result, m => ToSubscript(m.Groups[1].Value));
 
-        // 5. Clean remaining curly braces from grouped parameters
+        // 5. Remove leftover grouping braces and collapse extra horizontal spaces
         result = result.Replace("{", "").Replace("}", "");
-
-        // 6. Clean multiple spaces
-        result = Regex.Replace(result, @"[ \t]+", " ");
+        result = MultiSpaceRegex().Replace(result, " ");
 
         return result.Trim();
     }
 
     /// <summary>
-    /// Replaces all inline ($...$) and display ($$...$$) LaTeX math blocks in markdown
-    /// with formatted Unicode typography suitable for Markdown viewers and plain-text displays.
+    /// Replaces inline ($...$) and display ($$...$$) LaTeX delimiters inside a plain text segment
+    /// without misinterpreting currency values (e.g., "$50 and $20").
     /// </summary>
-    public static string FormatMarkdownForDisplay(string markdown)
+    public static string ReplaceInlineAndDisplayMath(string text, bool useMarkdownEmphasis = false)
     {
-        if (string.IsNullOrEmpty(markdown)) return string.Empty;
+        if (string.IsNullOrEmpty(text) || !text.Contains('$'))
+            return text;
 
-        // First convert display math ($$...$$) into formatted blockquotes
-        var output = DisplayMathRegex.Replace(markdown, m =>
-        {
-            var formula = FormatFormula(m.Groups[1].Value, useMarkdownEmphasis: true);
-            return $"\n> 📐 **Formula:** {formula}\n";
-        });
-
-        // Then convert inline math ($...$)
-        output = InlineMathRegex.Replace(output, m =>
-        {
-            var formula = FormatFormula(m.Groups[1].Value, useMarkdownEmphasis: true);
-            return formula;
-        });
-
+        var output = DisplayMathRegex().Replace(text, m => FormatFormula(m.Groups[1].Value, useMarkdownEmphasis));
+        output = InlineMathRegex().Replace(output, m => FormatFormula(m.Groups[1].Value, useMarkdownEmphasis));
         return output;
+    }
+
+    private static string ReplaceSingleArgCommand(string input, string command, Func<string, string> formatter)
+    {
+        var prefix = command + "{";
+        int idx = 0;
+        while ((idx = input.IndexOf(prefix, idx, StringComparison.Ordinal)) >= 0)
+        {
+            if (TryReadBalancedBraces(input, idx + command.Length, out var content, out var endIndex))
+            {
+                var replacement = formatter(content);
+                input = string.Concat(input.AsSpan(0, idx), replacement, input.AsSpan(endIndex));
+                idx += replacement.Length;
+            }
+            else
+            {
+                idx += prefix.Length;
+            }
+        }
+        return input;
+    }
+
+    private static string ReplaceFracCommands(string input)
+    {
+        const string cmd = @"\frac";
+        int idx = 0;
+        while ((idx = input.IndexOf(cmd, idx, StringComparison.Ordinal)) >= 0)
+        {
+            int pos = idx + cmd.Length;
+            if (TryReadBalancedBraces(input, pos, out var num, out var afterNum) &&
+                TryReadBalancedBraces(input, afterNum, out var den, out var afterDen))
+            {
+                var formatted = $"({FormatFormula(num, false)} / {FormatFormula(den, false)})";
+                input = string.Concat(input.AsSpan(0, idx), formatted, input.AsSpan(afterDen));
+                idx += formatted.Length;
+            }
+            else
+            {
+                idx += cmd.Length;
+            }
+        }
+        return input;
+    }
+
+    private static string ReplaceSqrtCommands(string input)
+    {
+        const string cmd = @"\sqrt";
+        int idx = 0;
+        while ((idx = input.IndexOf(cmd, idx, StringComparison.Ordinal)) >= 0)
+        {
+            int pos = idx + cmd.Length;
+            if (pos < input.Length && input[pos] == '[')
+            {
+                var closeBracket = input.IndexOf(']', pos + 1);
+                if (closeBracket > pos) pos = closeBracket + 1;
+            }
+
+            if (TryReadBalancedBraces(input, pos, out var inner, out var endIndex))
+            {
+                var formatted = $"√({FormatFormula(inner, false)})";
+                input = string.Concat(input.AsSpan(0, idx), formatted, input.AsSpan(endIndex));
+                idx += formatted.Length;
+            }
+            else
+            {
+                idx += cmd.Length;
+            }
+        }
+        return input;
+    }
+
+    private static bool TryReadBalancedBraces(string input, int openBraceIndex, out string content, out int nextIndex)
+    {
+        content = string.Empty;
+        nextIndex = openBraceIndex;
+
+        while (openBraceIndex < input.Length && char.IsWhiteSpace(input[openBraceIndex]))
+            openBraceIndex++;
+
+        if (openBraceIndex >= input.Length || input[openBraceIndex] != '{')
+            return false;
+
+        int depth = 0;
+        int start = openBraceIndex + 1;
+        for (int i = openBraceIndex; i < input.Length; i++)
+        {
+            if (input[i] == '{') depth++;
+            else if (input[i] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    content = input[start..i];
+                    nextIndex = i + 1;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static string ToSuperscript(string text)
     {
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(text.Length);
         foreach (var c in text)
-        {
-            if (SuperscriptMap.TryGetValue(c, out var mapped))
-                sb.Append(mapped);
-            else
-                sb.Append(c);
-        }
+            sb.Append(SuperscriptMap.TryGetValue(c, out var mapped) ? mapped : c);
         return sb.ToString();
     }
 
     private static string ToSubscript(string text)
     {
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(text.Length);
         foreach (var c in text)
-        {
-            if (SubscriptMap.TryGetValue(c, out var mapped))
-                sb.Append(mapped);
-            else
-                sb.Append(c);
-        }
+            sb.Append(SubscriptMap.TryGetValue(c, out var mapped) ? mapped : c);
         return sb.ToString();
     }
+
+    [GeneratedRegex(@"(?s)\$\$(.+?)\$\$")]
+    public static partial Regex DisplayMathRegex();
+
+    // Pandoc/GFM-style inline math: no space after opening $, no space before closing $,
+    // no unescaped inner $, and closing $ cannot be immediately followed by a word char (protects "$50 and $20").
+    [GeneratedRegex(@"(?<!\\)(?<!\$)(?<!\w)\$(?!\$)(?!\s)([^$\r\n]+?)(?<!\s)(?<!\\)(?<!\$)\$(?!\$)(?!\w)")]
+    public static partial Regex InlineMathRegex();
+
+    [GeneratedRegex(@"_\{([0-9a-zA-Z\+\-]+)\}")]
+    private static partial Regex SubscriptBracedRegex();
+
+    [GeneratedRegex(@"\^\{([0-9a-zA-Z\+\-]+)\}")]
+    private static partial Regex SuperscriptBracedRegex();
+
+    [GeneratedRegex(@"_([0-9a-zA-Z])")]
+    private static partial Regex SubscriptSingleRegex();
+
+    [GeneratedRegex(@"\^([0-9a-zA-Z])")]
+    private static partial Regex SuperscriptSingleRegex();
+
+    [GeneratedRegex(@"[ \t]+")]
+    private static partial Regex MultiSpaceRegex();
 }

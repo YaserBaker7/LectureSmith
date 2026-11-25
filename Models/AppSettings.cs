@@ -1,22 +1,34 @@
-using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace LectureSmith.Models;
 
 /// <summary>
-/// Persisted application settings (API key, output path, model preference, course history).
+/// Persisted application settings (encrypted API key, output path, model preference, course history, token telemetry).
 /// </summary>
 public class AppSettings
 {
-    public string ApiKey { get; set; } = string.Empty;
+    /// <summary>
+    /// Legacy plaintext key field retained solely for one-time migration to <see cref="EncryptedApiKey"/>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ApiKey { get; set; }
+
+    /// <summary>
+    /// Base64-encoded DPAPI-encrypted Gemini API key.
+    /// </summary>
+    public string EncryptedApiKey { get; set; } = string.Empty;
+
     public string LastOutputPath { get; set; } = string.Empty;
-    public string PreferredModelId { get; set; } = "gemini-2.5-flash";
+    public string PreferredModelId { get; set; } = "gemini-4-hydrogen";
     public string ThemePreference { get; set; } = "Dark";
-    public List<string> CourseHistory { get; set; } = new();
-    public List<TokenRecord> TokenUsageHistory { get; set; } = new();
+    public List<string> CourseHistory { get; set; } = [];
+    public List<TokenRecord> TokenUsageHistory { get; set; } = [];
 
     public int GetTokensThisWeek()
     {
-        var startOfWeek = DateTime.Now.Date.AddDays(-(int)DateTime.Now.DayOfWeek);
+        var now = DateTime.Now;
+        var daysSinceMonday = ((int)now.DayOfWeek + 6) % 7;
+        var startOfWeek = now.Date.AddDays(-daysSinceMonday);
         int total = 0;
         foreach (var rec in TokenUsageHistory)
         {
@@ -28,7 +40,8 @@ public class AppSettings
 
     public int GetTokensThisMonth()
     {
-        var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var now = DateTime.Now;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
         int total = 0;
         foreach (var rec in TokenUsageHistory)
         {

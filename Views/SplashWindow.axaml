@@ -16,7 +16,6 @@
           CornerRadius="16"
           ClipToBounds="True">
     <Grid RowDefinitions="*,Auto">
-      <!-- Center Branding & Animation -->
       <StackPanel Grid.Row="0"
                   VerticalAlignment="Center"
                   HorizontalAlignment="Center"
@@ -34,7 +33,6 @@
                      HorizontalAlignment="Center"/>
         </StackPanel>
 
-        <!-- Animated Progress Bar -->
         <ProgressBar IsIndeterminate="True"
                      Width="280"
                      Height="4"
@@ -50,11 +48,10 @@
                    HorizontalAlignment="Center"/>
       </StackPanel>
 
-      <!-- Footer Info -->
       <Border Grid.Row="1" Background="{DynamicResource CardBackgroundSecondary}" Padding="14,8">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="Ready to run" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
-          <TextBlock Grid.Column="1" Text="v3.0.0" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+          <TextBlock Text="Initializing services" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+          <TextBlock Grid.Column="1" Text="v4.0.0" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
         </Grid>
       </Border>
     </Grid>

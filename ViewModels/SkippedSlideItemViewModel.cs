@@ -1,27 +1,25 @@
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace LectureSmith.Models;
+namespace LectureSmith.ViewModels;
 
-/// <summary>
-/// Represents a slide in the skip-slides popup with its image and toggle state.
-/// </summary>
-public partial class SkippedSlideInfo : ObservableObject, IDisposable
+public partial class SkippedSlideItemViewModel : ObservableObject, IDisposable
 {
     public int SlideNumber { get; }
     public string ImagePath { get; }
-    public Bitmap? SlideImage { get; }
+    public Bitmap? SlideImage { get; private set; }
 
     [ObservableProperty]
     private bool _isSkipped;
 
-    public SkippedSlideInfo(int slideNumber, string imagePath)
+    public SkippedSlideItemViewModel(int slideNumber, string imagePath)
     {
         SlideNumber = slideNumber;
         ImagePath = imagePath;
         try
         {
-            SlideImage = new Bitmap(imagePath);
+            using var fs = File.OpenRead(imagePath);
+            SlideImage = Bitmap.DecodeToWidth(fs, 440);
         }
         catch
         {
@@ -32,6 +30,7 @@ public partial class SkippedSlideInfo : ObservableObject, IDisposable
     public void Dispose()
     {
         SlideImage?.Dispose();
+        SlideImage = null;
         GC.SuppressFinalize(this);
     }
 }

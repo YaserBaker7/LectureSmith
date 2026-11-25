@@ -39,9 +39,6 @@ public class HistorySession
 
     [JsonIgnore]
     public string ChatCountText => ChatHistory.Count > 0
-        ? $"💬 {ChatHistory.Count} message{(ChatHistory.Count == 1 ? "" : "s")}"
+        ? $"{ChatHistory.Count} message{(ChatHistory.Count == 1 ? "" : "s")}"
         : "No chat";
-
-    [JsonIgnore]
-    public bool FileExists => !string.IsNullOrWhiteSpace(OutputFilePath) && File.Exists(OutputFilePath);
 }

@@ -8,7 +8,9 @@ namespace LectureSmith.Models;
 /// </summary>
 public partial class ChatMessage : ObservableObject
 {
-    public string Content { get; set; } = string.Empty;
+    [ObservableProperty]
+    private string _content = string.Empty;
+
     public bool IsUser { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.Now;
 
@@ -17,7 +19,7 @@ public partial class ChatMessage : ObservableObject
     [JsonConstructor]
     public ChatMessage(string content, bool isUser, DateTime timestamp = default)
     {
-        Content = content;
+        _content = content;
         IsUser = isUser;
         Timestamp = timestamp == default ? DateTime.Now : timestamp;
     }

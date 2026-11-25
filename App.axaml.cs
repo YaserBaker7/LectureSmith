@@ -1,12 +1,13 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using LectureSmith.Services;
 using LectureSmith.ViewModels;
 using LectureSmith.Views;
-using LectureSmith.Services;
 
 namespace LectureSmith;
 
@@ -21,69 +22,77 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
 
-            try
-            {
-                var settings = new SettingsService();
-                settings.Load();
-                var isDark = string.IsNullOrEmpty(settings.Settings.ThemePreference) ||
-                             settings.Settings.ThemePreference.Equals("Dark", StringComparison.OrdinalIgnoreCase);
-                RequestedThemeVariant = isDark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
-            }
-            catch
-            {
-                RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
-            }
+            var settingsService = new SettingsService();
+            settingsService.Load();
 
-            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+            var isDark = string.IsNullOrEmpty(settingsService.Settings.ThemePreference) ||
+                         settingsService.Settings.ThemePreference.Equals("Dark", StringComparison.OrdinalIgnoreCase);
+            RequestedThemeVariant = isDark ? ThemeVariant.Dark : ThemeVariant.Light;
+
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var splash = new SplashWindow();
             splash.Show();
 
-            _ = LaunchWorkspaceAsync(desktop, splash);
+            _ = LaunchWorkspaceAsync(desktop, splash, settingsService);
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
     private static async Task LaunchWorkspaceAsync(
-        IClassicDesktopStyleApplicationLifetime desktop, SplashWindow splash)
+        IClassicDesktopStyleApplicationLifetime desktop,
+        SplashWindow splash,
+        ISettingsService settingsService)
     {
-        await Task.Delay(150);
-
-        MainWindow? mainWindow = null;
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        try
         {
-            mainWindow = new MainWindow
+            await Task.Yield();
+
+            MainWindow? mainWindow = null;
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                DataContext = new MainWindowViewModel()
-            };
-        });
+                mainWindow = new MainWindow
+                {
+                    DataContext = new MainWindowViewModel(settingsService)
+                };
+            });
 
-        await Task.Delay(500);
-
-        if (mainWindow != null)
+            if (mainWindow != null)
+            {
+                desktop.MainWindow = mainWindow;
+                mainWindow.WindowState = WindowState.Maximized;
+                mainWindow.Show();
+                splash.Close();
+                desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+            }
+        }
+        catch (Exception ex)
         {
-            desktop.MainWindow = mainWindow;
-            mainWindow.WindowState = Avalonia.Controls.WindowState.Maximized;
-            mainWindow.Show();
-            splash.Close();
-            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+            try
+            {
+                Directory.CreateDirectory(AppPaths.LogsDir);
+                File.AppendAllText(AppPaths.CrashLogFile,
+                    $"\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] STARTUP FAILURE:\n{ex}\n");
+            }
+            catch { }
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                splash.Close();
+                desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
+                desktop.Shutdown(1);
+            });
         }
     }
 
-    private void DisableAvaloniaDataAnnotationValidation()
+    private static void DisableAvaloniaDataAnnotationValidation()
     {
-        // Get an array of plugins to remove
         var dataValidationPluginsToRemove =
             BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
-        // remove each entry found
         foreach (var plugin in dataValidationPluginsToRemove)
-        {
             BindingPlugins.DataValidators.Remove(plugin);
-        }
     }
 }

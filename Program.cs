@@ -1,7 +1,5 @@
 using Avalonia;
-using System;
-using System.IO;
-using System.Threading.Tasks;
+using LectureSmith.Services;
 
 namespace LectureSmith;
 
@@ -11,10 +9,8 @@ sealed class Program
     {
         try
         {
-            var logDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LectureSmith", "logs");
-            Directory.CreateDirectory(logDir);
-            return Path.Combine(logDir, "crash.log");
+            Directory.CreateDirectory(AppPaths.LogsDir);
+            return AppPaths.CrashLogFile;
         }
         catch
         {
@@ -25,7 +21,6 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // Catch ALL unhandled exceptions including native crashes
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
             try

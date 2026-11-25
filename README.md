@@ -4,7 +4,7 @@
 [![Framework](https://img.shields.io/badge/Framework-.NET%209.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![UI Framework](https://img.shields.io/badge/UI-Avalonia%20UI%2011.3-orange.svg)](https://avaloniaui.net/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue.svg)](#)
-[![Version](https://img.shields.io/badge/Version-v3.5.1-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
+[![Version](https://img.shields.io/badge/Version-v4.0.0-success.svg)](https://github.com/YaserBaker7/LectureSmith/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **LectureSmith** is a modern Windows desktop application designed for students and educators. It transforms lecture slides (PDFs) and reference textbooks into comprehensive, beautifully formatted study notes using **Google AI Studio (Gemini API)**.
@@ -43,7 +43,7 @@ Upload lecture slides, optionally attach reference textbook chapters, choose you
 ## 🚀 Download & Installation
 
 ### Windows Setup Installer (Recommended)
-Download the latest Windows installer (`LectureSmith-Setup-v3.5.1.exe`) from [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases).
+Download the latest Windows installer (`LectureSmith-Setup-v4.0.0.exe`) from [GitHub Releases](https://github.com/YaserBaker7/LectureSmith/releases).
 * **Self-Contained:** No .NET runtime or SDK installation required.
 * **Standard Installer:** Includes Start Menu shortcuts, optional desktop icon, and clean Windows uninstallation.
 
@@ -62,7 +62,7 @@ Download the latest Windows installer (`LectureSmith-Setup-v3.5.1.exe`) from [Gi
 dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true --self-contained true
 iscc installer.iss
 ```
-The installer will be generated at `Output/LectureSmith-Setup-v3.5.1.exe`.
+The installer will be generated at `Output/LectureSmith-Setup-v4.0.0.exe`.
 
 ---
 

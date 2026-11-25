@@ -5,64 +5,48 @@ using System.Text;
 
 namespace LectureSmith.Services;
 
-public class GeminiService
+public class GeminiService : IGeminiService
 {
-    private static readonly HttpClient _httpClient = new()
-    {
-        Timeout = TimeSpan.FromMinutes(15)
-    };
     private string _apiKey = string.Empty;
+    private string _modelId = string.Empty;
+    private bool _thinkingEnabled;
+    private int? _outputTokenLimit;
+    private bool? _supportsThinking;
     private GenerativeModel? _model;
-    private IGenerativeAI? _googleAi;
-    private ChatSession? _chatSession;
 
-    /// <summary>
-    /// Available text-generation models the user can choose from.
-    /// Updated from https://ai.google.dev/gemini-api/docs/models and pricing page.
-    /// </summary>
-    public static readonly GeminiModelInfo OfflineErrorModel = new("", "✗ Cannot fetch models (Offline or invalid key)", false);
-    public static readonly GeminiModelInfo[] AvailableModels = [];
-
-    public static GeminiModelInfo? FindModelById(IEnumerable<GeminiModelInfo> models, string? modelId)
-    {
-        if (string.IsNullOrWhiteSpace(modelId))
-            return models.FirstOrDefault();
-
-        return models.FirstOrDefault(m => m.Id == modelId) ?? models.FirstOrDefault();
-    }
-
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);
-    public bool HasActiveChat => _chatSession != null;
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey) && _model != null;
 
     public void SetApiKey(string apiKey)
     {
-        _apiKey = apiKey;
-        _googleAi = new GoogleAI(apiKey);
+        _apiKey = apiKey?.Trim() ?? string.Empty;
         _model = null;
-        _chatSession = null;
     }
 
-    public void SetModel(string modelId, bool thinkingEnabled = false, int? outputTokenLimit = null)
+    public void SetModel(string modelId, bool thinkingEnabled = false, int? outputTokenLimit = null, bool? supportsThinking = null)
     {
-        if (string.IsNullOrWhiteSpace(_apiKey)) return;
+        if (string.IsNullOrWhiteSpace(_apiKey) || string.IsNullOrWhiteSpace(modelId))
+            return;
 
-        // Fresh GoogleAI client instance to discard any prior failed request/model state
-        _googleAi = new GoogleAI(_apiKey);
-        _chatSession = null;
+        _modelId = modelId;
+        _thinkingEnabled = thinkingEnabled;
+        _outputTokenLimit = outputTokenLimit;
+        _supportsThinking = supportsThinking;
+        _model = CreateConfiguredModel(systemInstruction: null);
+    }
 
-        var lowerId = modelId.ToLowerInvariant();
+    private GenerativeModel CreateConfiguredModel(string? systemInstruction)
+    {
+        var googleAi = new GoogleAI(_apiKey);
+        var lowerId = _modelId.ToLowerInvariant();
 
-        // Determine safe MaxOutputTokens: 1.5/1.0 models cap at 8192; 2.0/2.5 can handle 65536
-        int? maxTokens = outputTokenLimit;
+        int? maxTokens = _outputTokenLimit;
         if (!maxTokens.HasValue)
         {
-            if (lowerId.Contains("1.5") || lowerId.Contains("1.0"))
-                maxTokens = 8192;
-            else if (lowerId.Contains("2.0") || lowerId.Contains("2.5"))
-                maxTokens = 65536;
+            maxTokens = (lowerId.Contains("1.5") || lowerId.Contains("1.0")) ? 8192 : 65536;
         }
         else if (maxTokens.Value > 65536)
         {
+            // Keep synchronous single-pass output capped at 65,536 tokens
             maxTokens = 65536;
         }
 
@@ -72,7 +56,12 @@ public class GeminiService
             Temperature = 0.7f
         };
 
-        if (thinkingEnabled && (lowerId.Contains("thinking") || lowerId.Contains("2.5") || lowerId.Contains("2.0")))
+        bool thinkingCapable = _supportsThinking ??
+            (lowerId.Contains("gemini-4") || lowerId.Contains("gemini-3") ||
+             lowerId.Contains("gemini-2.5") || lowerId.Contains("gemini-2.0") ||
+             lowerId.Contains("thinking"));
+
+        if (_thinkingEnabled && thinkingCapable)
         {
             genConfig.ThinkingConfig = new ThinkingConfig
             {
@@ -80,48 +69,49 @@ public class GeminiService
             };
         }
 
-        _model = _googleAi.GenerativeModel(
-            model: modelId,
-            generationConfig: genConfig);
+        var sysContent = string.IsNullOrWhiteSpace(systemInstruction)
+            ? null
+            : new Content(systemInstruction);
+
+        var model = googleAi.GenerativeModel(
+            model: _modelId,
+            generationConfig: genConfig,
+            systemInstruction: sysContent);
+
         // BaseModel shares a static HttpClient; Timeout can only be set before the first HTTP request.
         try
         {
-            if (_model.Timeout != TimeSpan.FromMinutes(15))
-                _model.Timeout = TimeSpan.FromMinutes(15);
+            if (model.Timeout != TimeSpan.FromMinutes(15))
+                model.Timeout = TimeSpan.FromMinutes(15);
         }
         catch (InvalidOperationException)
         {
         }
+
+        return model;
     }
 
-    /// <summary>
-    /// Generates text-only content using the Gemini API with exponential backoff retries.
-    /// </summary>
-    public async Task<string> GenerateAsync(string systemPrompt, string userContent,
+    public async Task<(string Text, TokenUsage Usage)> GenerateAsync(
+        string systemPrompt, string userContent,
         IProgress<string>? progress = null, CancellationToken ct = default)
     {
         EnsureModelConfigured();
 
-        var combinedPrompt = BuildCombinedPrompt(systemPrompt, userContent);
-
         return await ExecuteWithRetryAsync(async () =>
         {
-            var response = _model!.GenerateContentStream(combinedPrompt, cancellationToken: ct);
-            return await StreamResponseAsync(response, progress, ct);
+            var model = CreateConfiguredModel(systemPrompt);
+            var response = model.GenerateContentStream(userContent, cancellationToken: ct);
+            return await StreamResponseAsync(response, progress, allowPartialOnError: true, ct);
         }, 3, ct);
     }
 
-    /// <summary>
-    /// Generates content with inline slide images using the Gemini multimodal API with exponential backoff retries.
-    /// </summary>
-    public async Task<string> GenerateWithImagesAsync(string systemPrompt, string userContent,
-        List<string> imagePaths, IProgress<string>? progress = null, CancellationToken ct = default)
+    public async Task<(string Text, TokenUsage Usage)> GenerateWithImagesAsync(
+        string systemPrompt, string userContent, List<string> imagePaths,
+        IProgress<string>? progress = null, CancellationToken ct = default)
     {
         EnsureModelConfigured();
 
-        var combinedPrompt = BuildCombinedPrompt(systemPrompt, userContent);
-        var request = new GenerateContentRequest(combinedPrompt);
-
+        var request = new GenerateContentRequest(userContent);
         foreach (var imagePath in imagePaths)
         {
             ct.ThrowIfCancellationRequested();
@@ -133,65 +123,81 @@ public class GeminiService
 
         return await ExecuteWithRetryAsync(async () =>
         {
-            var response = _model!.GenerateContentStream(request, cancellationToken: ct);
-            return await StreamResponseAsync(response, progress, ct);
+            var model = CreateConfiguredModel(systemPrompt);
+            var response = model.GenerateContentStream(request, cancellationToken: ct);
+            return await StreamResponseAsync(response, progress, allowPartialOnError: true, ct);
         }, 3, ct);
     }
 
     /// <summary>
-    /// Starts a chat session primed with the generated notes as context.
-    /// Uses Gemini's ChatSession which maintains conversation history server-side.
-    /// Can optionally restore previous conversation messages when resuming a session from history.
+    /// Creates an isolated chat handle primed with the lecture notes and optional prior chat messages.
+    /// Workspace and History chats each hold their own handle so they never overwrite one another.
     /// </summary>
-    public void StartChatSession(string systemPrompt, string initialContext, IEnumerable<LectureSmith.Models.ChatMessage>? previousMessages = null)
+    public IGeminiChatHandle CreateChatSession(
+        string systemPrompt, string initialContext, IEnumerable<LectureSmith.Models.ChatMessage>? previousMessages = null)
     {
         EnsureModelConfigured();
 
+        var model = CreateConfiguredModel(systemPrompt);
         var historyList = new List<ContentResponse>
         {
-            new ContentResponse($"{systemPrompt}\n\nHere are the lecture notes I just generated:\n\n{initialContext}", "user"),
-            new ContentResponse("I've reviewed the lecture notes. I'm ready to answer any follow-up questions you have about this material. What would you like to know?", "model")
+            new($"Here are the lecture notes to reference:\n\n{initialContext}", "user"),
+            new("I've reviewed the lecture notes. I'm ready to answer any follow-up questions you have about this material. What would you like to know?", "model")
         };
 
         if (previousMessages != null)
         {
             foreach (var msg in previousMessages)
             {
-                if (!msg.IsUser && msg.Content.StartsWith("I've reviewed the lecture notes", StringComparison.OrdinalIgnoreCase))
+                if (!msg.IsUser && msg.Content.StartsWith("I've reviewed", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (string.IsNullOrWhiteSpace(msg.Content))
                     continue;
 
                 historyList.Add(new ContentResponse(msg.Content, msg.IsUser ? "user" : "model"));
             }
         }
 
-        _chatSession = _model!.StartChat(history: historyList);
+        var chat = model.StartChat(history: historyList);
+        return new GeminiChatHandle(chat);
     }
 
-    /// <summary>
-    /// Sends a follow-up message in the active chat session and streams the response.
-    /// </summary>
-    public async Task<string> SendChatMessageAsync(string message,
-        IProgress<string>? progress = null, CancellationToken ct = default)
+    private sealed class GeminiChatHandle : IGeminiChatHandle
     {
-        if (_chatSession == null)
-            throw new InvalidOperationException("No active chat session. Call StartChatSession first.");
+        private readonly ChatSession _chatSession;
 
-        return await ExecuteWithRetryAsync(async () =>
+        public GeminiChatHandle(ChatSession chatSession)
         {
-            var response = _chatSession.SendMessageStream(message, cancellationToken: ct);
-            return await StreamResponseAsync(response, progress, ct);
-        }, 3, ct);
+            _chatSession = chatSession;
+        }
+
+        public async Task<string> SendMessageAsync(
+            string message, IProgress<string>? progress = null, CancellationToken ct = default)
+        {
+            return await ExecuteWithRetryAsync(async () =>
+            {
+                int historyCountBefore = _chatSession.History?.Count ?? 0;
+                try
+                {
+                    var response = _chatSession.SendMessageStream(message, cancellationToken: ct);
+                    var (text, _) = await StreamResponseAsync(response, progress, allowPartialOnError: false, ct);
+                    return text;
+                }
+                catch
+                {
+                    // Roll back any uncompleted turn appended by the SDK before retrying or propagating
+                    if (_chatSession.History != null && _chatSession.History.Count > historyCountBefore)
+                    {
+                        _chatSession.History.RemoveRange(historyCountBefore, _chatSession.History.Count - historyCountBefore);
+                    }
+                    throw;
+                }
+            }, 3, ct);
+        }
     }
 
-    /// <summary>
-    /// Ends the current chat session.
-    /// </summary>
-    public void EndChatSession()
-    {
-        _chatSession = null;
-    }
-
-    private static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action, int maxRetries = 3, CancellationToken ct = default)
+    private static async Task<T> ExecuteWithRetryAsync<T>(
+        Func<Task<T>> action, int maxRetries = 3, CancellationToken ct = default)
     {
         int attempt = 0;
         while (true)
@@ -209,155 +215,41 @@ public class GeminiService
             {
                 throw new OperationCanceledException("Generation was cancelled.", ex, ct);
             }
-            catch (Exception ex) when (attempt <= maxRetries && (
-                ex.Message.Contains("429") ||
-                ex.Message.Contains("Quota") ||
-                ex.Message.Contains("503") ||
-                ex.Message.Contains("500") ||
-                ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
-                ex is HttpRequestException || ex.InnerException is HttpRequestException ||
-                ex is TimeoutException || ex.InnerException is TimeoutException ||
-                ex is TaskCanceledException || ex.InnerException is TaskCanceledException ||
-                ex is System.IO.IOException || ex.InnerException is System.IO.IOException))
+            catch (Exception ex) when (attempt <= maxRetries && IsTransientError(ex))
             {
                 await Task.Delay((int)Math.Pow(2, attempt) * 1000, ct);
             }
         }
     }
 
-    /// <summary>
-    /// Validates the API key by calling the models REST endpoint (no quota consumed).
-    /// </summary>
-    public async Task<(bool IsValid, string Error)> ValidateApiKeyAsync()
+    private static bool IsTransientError(Exception ex)
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(_apiKey))
-                return (false, "Not initialized.");
-            
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models?key={_apiKey}";
-            var response = await _httpClient.GetAsync(url);
-            
-            if (response.IsSuccessStatusCode)
-                return (true, string.Empty);
-            
-            var body = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest || 
-                body.Contains("API_KEY_INVALID", StringComparison.OrdinalIgnoreCase))
-                return (false, "Invalid API key.");
-            
-            return (false, $"Validation failed ({response.StatusCode}): {body}");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"API key validation failed: {ex.Message}");
-        }
+        return ex.Message.Contains("429", StringComparison.Ordinal) ||
+               ex.Message.Contains("Quota", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("503", StringComparison.Ordinal) ||
+               ex.Message.Contains("500", StringComparison.Ordinal) ||
+               ex.Message.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
+               ex is HttpRequestException || ex.InnerException is HttpRequestException ||
+               ex is TimeoutException || ex.InnerException is TimeoutException ||
+               ex is TaskCanceledException || ex.InnerException is TaskCanceledException ||
+               ex is IOException || ex.InnerException is IOException;
     }
-
-    /// <summary>
-    /// Dynamically fetches available Gemini models from Google AI Studio.
-    /// Tags models with Free (Flash/Lite) vs Paid (Pro/Preview) indicators.
-    /// </summary>
-    public async Task<List<GeminiModelInfo>> FetchAvailableModelsAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_apiKey)) return [.. AvailableModels];
-
-        try
-        {
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models?key={_apiKey}";
-            var response = await _httpClient.GetAsync(url);
-            if (!response.IsSuccessStatusCode) return [OfflineErrorModel];
-
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-
-            var fetchedList = new List<GeminiModelInfo>();
-
-            if (doc.RootElement.TryGetProperty("models", out var modelsArray))
-            {
-                foreach (var modelElement in modelsArray.EnumerateArray())
-                {
-                    var name = modelElement.GetProperty("name").GetString() ?? "";
-                    var id = name.StartsWith("models/") ? name.Substring("models/".Length) : name;
-
-                    var dispName = modelElement.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? id : id;
-
-                    if (!IsAllowedTextModel(id, dispName, out bool isFree)) continue;
-
-                    // Filter only models that support generateContent
-                    if (modelElement.TryGetProperty("supportedGenerationMethods", out var methods))
-                    {
-                        bool supportsGen = false;
-                        foreach (var m in methods.EnumerateArray())
-                        {
-                            if (m.GetString() == "generateContent") { supportsGen = true; break; }
-                        }
-                        if (!supportsGen) continue;
-                    }
-
-                    int? outputLimit = null;
-                    if (modelElement.TryGetProperty("outputTokenLimit", out var otl) && otl.TryGetInt32(out var otlVal))
-                    {
-                        outputLimit = otlVal;
-                    }
-
-                    fetchedList.Add(new GeminiModelInfo(id, $"{dispName}", isFree, outputLimit));
-                }
-            }
-
-            return fetchedList.Count > 0 ? fetchedList : [OfflineErrorModel];
-        }
-        catch
-        {
-            return [OfflineErrorModel];
-        }
-    }
-
-    private static bool IsAllowedTextModel(string id, string dispName, out bool isFree)
-    {
-        var combined = $"{id} {dispName}".ToLowerInvariant();
-        isFree = false;
-
-        // Disallow non-text / specialized models (Lyria, TTS, Robotics, Banana, Nano, Computer Use, Deep Research, Agent, Imagen, Audio, Speech)
-        if (combined.Contains("lyria") || combined.Contains("tts") || combined.Contains("speech") ||
-            combined.Contains("audio") || combined.Contains("imagen") || combined.Contains("banana") ||
-            combined.Contains("nano") || combined.Contains("robotics") || combined.Contains("computer") ||
-            combined.Contains("deep research") || combined.Contains("deep-research") || combined.Contains("agent") ||
-            combined.Contains("omni") || combined.Contains("embedding"))
-        {
-            return false;
-        }
-
-        // Must be a Gemini text model
-        if (!combined.Contains("gemini")) return false;
-
-        // Free tier models: Flash / Lite models
-        // Paid tier models: Pro / Max / Ultra models
-        isFree = combined.Contains("flash") || combined.Contains("lite");
-        return true;
-    }
-
-    // ── Private helpers ───────────────────────────────────────────────
 
     private void EnsureModelConfigured()
     {
-        if (_model == null)
-            throw new InvalidOperationException("Model not configured. Set API key and model first.");
+        if (string.IsNullOrWhiteSpace(_apiKey) || _model == null || string.IsNullOrWhiteSpace(_modelId))
+            throw new InvalidOperationException("Model not configured. Please enter a valid API key and select a model in Settings.");
     }
 
-    private static string BuildCombinedPrompt(string systemPrompt, string userContent)
-        => $"SYSTEM INSTRUCTIONS:\n{systemPrompt}\n\n---\n\nUSER CONTENT:\n{userContent}";
-
-    /// <summary>
-    /// Shared streaming logic — consumes an async stream of response chunks,
-    /// reports progress, and returns the full accumulated text.
-    /// </summary>
-    private static async Task<string> StreamResponseAsync(
+    private static async Task<(string Text, TokenUsage Usage)> StreamResponseAsync(
         IAsyncEnumerable<GenerateContentResponse> response,
-        IProgress<string>? progress, CancellationToken ct)
+        IProgress<string>? progress,
+        bool allowPartialOnError,
+        CancellationToken ct)
     {
         var fullResponse = new StringBuilder();
-        string? lastFinishReason = null;
+        int promptTokens = 0;
+        int outputTokens = 0;
 
         try
         {
@@ -365,14 +257,14 @@ public class GeminiService
             {
                 ct.ThrowIfCancellationRequested();
 
-                // Track the finish reason so we can detect truncation
-                if (chunk.Candidates != null)
+                if (chunk.UsageMetadata != null)
                 {
-                    foreach (var candidate in chunk.Candidates)
-                    {
-                        if (candidate.FinishReason != null)
-                            lastFinishReason = candidate.FinishReason.ToString();
-                    }
+                    if (chunk.UsageMetadata.PromptTokenCount > 0)
+                        promptTokens = chunk.UsageMetadata.PromptTokenCount;
+
+                    var candidateAndThoughts = chunk.UsageMetadata.CandidatesTokenCount + chunk.UsageMetadata.ThoughtsTokenCount;
+                    if (candidateAndThoughts > 0)
+                        outputTokens = candidateAndThoughts;
                 }
 
                 var text = chunk.Text;
@@ -392,15 +284,14 @@ public class GeminiService
             if (ct.IsCancellationRequested)
                 throw new OperationCanceledException("Generation was cancelled.", ex, ct);
 
-            // If we already got partial content, return it cleanly so NoteGeneratorService
-            // can rewind to the incomplete slide and seamlessly continue.
-            if (fullResponse.Length > 0)
+            if (allowPartialOnError && fullResponse.Length > 0)
             {
-                return fullResponse.ToString();
+                return (fullResponse.ToString(), new TokenUsage(promptTokens, outputTokens));
             }
+
             throw new InvalidOperationException($"Gemini API error: {ex.Message}", ex);
         }
 
-        return fullResponse.ToString();
+        return (fullResponse.ToString(), new TokenUsage(promptTokens, outputTokens));
     }
 }

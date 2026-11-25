@@ -1,0 +1,187 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LectureSmith.ViewModels"
+             xmlns:ctl="using:LectureSmith.Views.Controls"
+             x:Class="LectureSmith.Views.MarkdownViewer"
+             x:DataType="vm:MarkdownViewerViewModel">
+
+  <ItemsControl ItemsSource="{Binding Blocks}" Padding="16,12">
+    <ItemsControl.Template>
+      <ControlTemplate TargetType="ItemsControl">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <ItemsPresenter Margin="{TemplateBinding Padding}"/>
+        </ScrollViewer>
+      </ControlTemplate>
+    </ItemsControl.Template>
+
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate>
+        <VirtualizingStackPanel/>
+      </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+
+    <ItemsControl.DataTemplates>
+
+      <!-- Headings -->
+      <DataTemplate DataType="vm:HeadingBlockItem">
+        <StackPanel Margin="0,12,0,4" Spacing="4">
+          <ctl:FormattedMarkdownText Runs="{Binding Runs}"
+                                     FontSize="{Binding FontSize}"
+                                     FontWeight="Bold"
+                                     Foreground="{DynamicResource AccentSubtleText}"/>
+          <Border Height="2" Background="{DynamicResource AccentBrush}" IsVisible="{Binding IsH1}" Margin="0,2,0,2"/>
+          <Border Height="1" Background="{DynamicResource CardBorderBrush}" IsVisible="{Binding IsH2}" Margin="0,1,0,2"/>
+        </StackPanel>
+      </DataTemplate>
+
+      <!-- Paragraphs -->
+      <DataTemplate DataType="vm:ParagraphBlockItem">
+        <ctl:FormattedMarkdownText Runs="{Binding Runs}"
+                                   FontSize="13"
+                                   LineHeight="21"
+                                   Foreground="{DynamicResource PreviewText}"
+                                   Margin="0,3"/>
+      </DataTemplate>
+
+      <!-- Display Math Formula -->
+      <DataTemplate DataType="vm:FormulaBlockItem">
+        <Border Margin="0,6"
+                Background="{DynamicResource CardBackgroundSecondary}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="3,0,0,0"
+                CornerRadius="0,8,8,0"
+                Padding="12,9">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="📐" FontSize="13" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding Formula}"
+                       FontSize="13"
+                       FontStyle="Italic"
+                       Foreground="{DynamicResource AccentSubtleText}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <!-- Fenced / Indented Code Block -->
+      <DataTemplate DataType="vm:CodeBlockItem">
+        <Border Margin="0,6"
+                Background="{DynamicResource CardBackgroundSecondary}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12,10">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding Language}"
+                       IsVisible="{Binding HasLanguage}"
+                       FontSize="10"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource TextMuted}"/>
+            <TextBlock Text="{Binding Code}"
+                       FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                       FontSize="12"
+                       LineHeight="18"
+                       Foreground="{DynamicResource PreviewText}"
+                       TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <!-- Callouts & Blockquotes -->
+      <DataTemplate DataType="vm:QuoteBlockItem">
+        <Border Margin="0,6"
+                Background="{DynamicResource AccentSubtleBg}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="3,0,0,0"
+                CornerRadius="0,8,8,0"
+                Padding="12,9">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{Binding CalloutTitle}"
+                       IsVisible="{Binding HasCalloutTitle}"
+                       FontSize="12"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource AccentSubtleText}"/>
+            <ItemsControl ItemsSource="{Binding Paragraphs}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:MarkdownParagraphLine">
+                  <ctl:FormattedMarkdownText Runs="{Binding Runs}"
+                                             FontSize="12.5"
+                                             LineHeight="19"
+                                             Foreground="{DynamicResource PreviewText}"
+                                             Margin="0,1"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <!-- Bullet & Numbered Lists -->
+      <DataTemplate DataType="vm:ListBlockItem">
+        <ItemsControl ItemsSource="{Binding Rows}" Margin="0,3">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="vm:MarkdownListRow">
+              <Grid ColumnDefinitions="Auto,*" Margin="{Binding IndentMargin}">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Prefix}"
+                           FontWeight="Bold"
+                           FontSize="13"
+                           Foreground="{DynamicResource AccentSubtleText}"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Top"/>
+                <ctl:FormattedMarkdownText Grid.Column="1"
+                                           Runs="{Binding Runs}"
+                                           FontSize="13"
+                                           LineHeight="20"
+                                           Foreground="{DynamicResource PreviewText}"/>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </DataTemplate>
+
+      <!-- Tables -->
+      <DataTemplate DataType="vm:TableBlockItem">
+        <ctl:MarkdownTableControl Headers="{Binding Headers}" Rows="{Binding Rows}"/>
+      </DataTemplate>
+
+      <!-- Slide Images (Decoded-to-Width & Cached) -->
+      <DataTemplate DataType="vm:SlideImageBlockItem">
+        <Border Margin="0,8"
+                Background="{DynamicResource CardBackgroundSecondary}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="8"
+                HorizontalAlignment="Left"
+                MaxWidth="520">
+          <StackPanel Spacing="6">
+            <Image Source="{Binding Image}"
+                   IsVisible="{Binding HasImage}"
+                   MaxHeight="300"
+                   Stretch="Uniform"/>
+            <Border IsVisible="{Binding !HasImage}"
+                    Background="{DynamicResource AccentSubtleBg}"
+                    CornerRadius="6"
+                    Padding="10,6">
+              <TextBlock Text="{Binding ImageRef, StringFormat='🖼 {0}'}"
+                         FontSize="11.5"
+                         Foreground="{DynamicResource AccentSubtleText}"/>
+            </Border>
+            <TextBlock Text="{Binding Caption}"
+                       FontSize="10.5"
+                       Foreground="{DynamicResource TextMuted}"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <!-- Horizontal Divider -->
+      <DataTemplate DataType="vm:DividerBlockItem">
+        <Border Height="1" Background="{DynamicResource CardBorderBrush}" Margin="0,12"/>
+      </DataTemplate>
+
+    </ItemsControl.DataTemplates>
+  </ItemsControl>
+</UserControl>

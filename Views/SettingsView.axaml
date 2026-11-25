@@ -1,0 +1,228 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LectureSmith.ViewModels"
+             x:Class="LectureSmith.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <ScrollViewer Padding="24,20" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
+
+      <!-- Card 1: API Key Settings -->
+      <Border Classes="card" Padding="22">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="sectionHeader" Text="🔑 Google AI Studio API Key"/>
+          <TextBlock Text="Your Gemini API key is encrypted per-user with Windows DPAPI and stored locally in %APPDATA%\LectureSmith\settings.json. It is never transmitted anywhere except Google's Gemini API."
+                     FontSize="12"
+                     Foreground="{DynamicResource TextSecondary}"
+                     TextWrapping="Wrap"
+                     LineHeight="18"/>
+
+          <StackPanel Spacing="6" Margin="0,4,0,0">
+            <TextBlock Text="API Key:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBox Grid.Column="0"
+                       Text="{Binding ApiKey}"
+                       PasswordChar="{Binding PasswordChar}"
+                       Watermark="Enter your Gemini API key (AIzaSy...)"/>
+              <Button Grid.Column="1"
+                      Classes="secondary"
+                      Command="{Binding ToggleRevealApiKeyCommand}"
+                      Padding="12,8"
+                      ToolTip.Tip="Show or hide API key">
+                <Panel>
+                  <TextBlock Text="Show" FontSize="11.5" IsVisible="{Binding !ShowApiKey}"/>
+                  <TextBlock Text="Hide" FontSize="11.5" IsVisible="{Binding ShowApiKey}"/>
+                </Panel>
+              </Button>
+              <Button Grid.Column="2"
+                      Command="{Binding SaveApiKeyCommand}"
+                      Content="Save &amp; Validate"
+                      Classes="primary"
+                      Padding="18,8"/>
+            </Grid>
+          </StackPanel>
+
+          <Border Background="{DynamicResource CardBackgroundSecondary}"
+                  CornerRadius="8"
+                  Padding="12,9"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Text="Status:" FontSize="11.5" Foreground="{DynamicResource TextMuted}" FontWeight="Bold" VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1" Text="{Binding ApiKeyStatus}" FontSize="12" Foreground="{DynamicResource AccentSubtleText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </Grid>
+          </Border>
+
+          <TextBlock Text="Need a free Gemini API key? Get one at https://aistudio.google.com"
+                     FontSize="11"
+                     Foreground="{DynamicResource TextMuted}"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Card 2: Appearance & Theme -->
+      <Border Classes="card" Padding="22">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="sectionHeader" Text="🎨 Appearance &amp; Theme"/>
+          <TextBlock Text="Choose your preferred interface theme. Click either card below to apply instantly."
+                     FontSize="12"
+                     Foreground="{DynamicResource TextSecondary}"/>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+            <!-- Dark Mode Card -->
+            <Button Grid.Column="0"
+                    Command="{Binding SetThemeCommand}"
+                    CommandParameter="Dark"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch">
+              <Border Background="{DynamicResource CardBackgroundSecondary}"
+                      CornerRadius="10"
+                      Padding="14"
+                      BorderThickness="2"
+                      Classes.selected="{Binding IsDarkMode}">
+                <Border.Styles>
+                  <Style Selector="Border">
+                    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                  </Style>
+                  <Style Selector="Border.selected">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                  </Style>
+                </Border.Styles>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <TextBlock Text="🌙" FontSize="22" VerticalAlignment="Center"/>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="Dark Mode" FontSize="13" FontWeight="SemiBold"/>
+                    <TextBlock Text="Deep slate &amp; violet accents" FontSize="10.5" Foreground="{DynamicResource TextMuted}"/>
+                  </StackPanel>
+                  <Border Grid.Column="2"
+                          IsVisible="{Binding IsDarkMode}"
+                          Background="{DynamicResource AccentSubtleBg}"
+                          CornerRadius="6"
+                          Padding="7,3"
+                          VerticalAlignment="Center">
+                    <TextBlock Text="Active" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                  </Border>
+                </Grid>
+              </Border>
+            </Button>
+
+            <!-- Light Mode Card -->
+            <Button Grid.Column="1"
+                    Command="{Binding SetThemeCommand}"
+                    CommandParameter="Light"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch">
+              <Border Background="{DynamicResource CardBackgroundSecondary}"
+                      CornerRadius="10"
+                      Padding="14"
+                      BorderThickness="2"
+                      Classes.selected="{Binding !IsDarkMode}">
+                <Border.Styles>
+                  <Style Selector="Border">
+                    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                  </Style>
+                  <Style Selector="Border.selected">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                  </Style>
+                </Border.Styles>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <TextBlock Text="☀️" FontSize="22" VerticalAlignment="Center"/>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="Light Mode" FontSize="13" FontWeight="SemiBold"/>
+                    <TextBlock Text="Crisp paper &amp; indigo accents" FontSize="10.5" Foreground="{DynamicResource TextMuted}"/>
+                  </StackPanel>
+                  <Border Grid.Column="2"
+                          IsVisible="{Binding !IsDarkMode}"
+                          Background="{DynamicResource AccentSubtleBg}"
+                          CornerRadius="6"
+                          Padding="7,3"
+                          VerticalAlignment="Center">
+                    <TextBlock Text="Active" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                  </Border>
+                </Grid>
+              </Border>
+            </Button>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Card 3: Maintenance, Cache & Reset -->
+      <Border Classes="card" Padding="22">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="sectionHeader" Text="🧹 Storage, Cache &amp; Maintenance"/>
+
+          <TextBlock Text="{Binding WipeStatusMessage}"
+                     Foreground="{DynamicResource SuccessSubtleText}"
+                     FontSize="12"
+                     FontWeight="SemiBold"
+                     IsVisible="{Binding WipeStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+          <!-- Clean Temp Cache -->
+          <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="14" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+              <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center" Margin="0,0,14,0">
+                <TextBlock Text="Clear Temporary Slide Cache" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="Removes extracted slide PNG caches in %TEMP%\LectureSmith." FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" Command="{Binding CleanupCacheCommand}" Content="Clean Cache" Padding="16,8"/>
+              <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                         Margin="0,8,0,0"
+                         Text="{Binding CleanupStatus}"
+                         Foreground="{DynamicResource SuccessSubtleText}"
+                         FontSize="11.5"
+                         IsVisible="{Binding CleanupStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </Grid>
+          </Border>
+
+          <!-- Reset Data -->
+          <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="14" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+              <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center" Margin="0,0,14,0">
+                <TextBlock Text="Reset Stored Data &amp; Settings" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="Clears API key, history, course list, and caches. Exported notes on disk remain untouched." FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" Command="{Binding RequestWipeDataCommand}" Content="Reset Data" Padding="16,8" IsVisible="{Binding !ShowWipeConfirmation}"/>
+
+              <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0" Background="{DynamicResource DangerSubtleBg}" CornerRadius="8" Padding="12" BorderBrush="{DynamicResource DangerSubtleBorder}" BorderThickness="1" IsVisible="{Binding ShowWipeConfirmation}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                  <TextBlock Text="⚠️ Reset settings, history, and caches? (Exported notes stay safe)" FontSize="12" Foreground="{DynamicResource DangerSubtleText}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="1" Classes="danger" Command="{Binding ConfirmWipeDataCommand}" Content="Yes, Reset All" Padding="14,6"/>
+                  <Button Grid.Column="2" Classes="secondary" Command="{Binding CancelWipeDataCommand}" Content="Cancel" Padding="14,6"/>
+                </Grid>
+              </Border>
+            </Grid>
+          </Border>
+
+          <!-- Uninstall -->
+          <Border Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="10" Padding="14" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+              <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center" Margin="0,0,14,0">
+                <TextBlock Text="Complete Application Uninstall" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource DangerBrush}"/>
+                <TextBlock Text="Removes LectureSmith, settings, and temporary caches. Saved lecture notes are never deleted." FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+              </StackPanel>
+              <Button Grid.Column="1" Classes="danger" Command="{Binding RequestUninstallCommand}" Content="Uninstall App" Padding="16,8" IsVisible="{Binding !ShowUninstallConfirmation}"/>
+
+              <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0" Background="{DynamicResource DangerSubtleBg}" CornerRadius="8" Padding="12" BorderBrush="{DynamicResource DangerSubtleBorder}" BorderThickness="1" IsVisible="{Binding ShowUninstallConfirmation}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                  <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="🚨 Uninstall LectureSmith and remove application data?" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource DangerSubtleText}"/>
+                    <TextBlock Text="Your saved lecture notes will NOT be touched." FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+                  </StackPanel>
+                  <Button Grid.Column="1" Classes="danger" Command="{Binding ConfirmUninstallCommand}" Content="Confirm Uninstall" Padding="14,6"/>
+                  <Button Grid.Column="2" Classes="secondary" Command="{Binding CancelUninstallCommand}" Content="Cancel" Padding="14,6"/>
+                </Grid>
+              </Border>
+            </Grid>
+          </Border>
+
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

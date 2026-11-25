@@ -1,10 +1,6 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-
 namespace LectureSmith.Services;
 
-public class TempFileCleanupService
+public static class TempFileCleanupService
 {
     /// <summary>
     /// Sweeps the LectureSmith temporary directory and removes subdirectories older than 24 hours.
@@ -15,11 +11,10 @@ public class TempFileCleanupService
         {
             try
             {
-                var tempBaseDir = Path.Combine(Path.GetTempPath(), "LectureSmith");
-                if (!Directory.Exists(tempBaseDir)) return;
+                if (!Directory.Exists(AppPaths.TempDir)) return;
 
                 var cutoff = DateTime.Now.AddHours(-24);
-                var dirInfo = new DirectoryInfo(tempBaseDir);
+                var dirInfo = new DirectoryInfo(AppPaths.TempDir);
 
                 foreach (var subDir in dirInfo.GetDirectories())
                 {
@@ -31,14 +26,14 @@ public class TempFileCleanupService
                         }
                         catch
                         {
-                            // File might be locked by another process, ignore
+                            // File might be locked by another process
                         }
                     }
                 }
             }
             catch
             {
-                // Silently swallow errors during background cleanup
+                // Silently ignore non-critical background cleanup errors
             }
         });
     }

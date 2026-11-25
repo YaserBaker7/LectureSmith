@@ -1,78 +1,145 @@
 using LectureSmith.Models;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace LectureSmith.Services;
 
-public class SettingsService
+public class SettingsService : ISettingsService
 {
-    private static readonly string SettingsDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LectureSmith");
-    private static readonly string SettingsFile = Path.Combine(SettingsDir, "settings.json");
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
+    private readonly object _lock = new();
+    private readonly ISecretProtector _protector;
 
     public AppSettings Settings { get; private set; } = new();
 
+    public SettingsService(ISecretProtector? protector = null)
+    {
+        _protector = protector ?? new DpapiSecretProtector();
+    }
+
+    public string GetApiKey()
+    {
+        lock (_lock)
+        {
+            if (!string.IsNullOrWhiteSpace(Settings.EncryptedApiKey))
+            {
+                var decrypted = _protector.Unprotect(Settings.EncryptedApiKey);
+                if (!string.IsNullOrWhiteSpace(decrypted))
+                    return decrypted;
+            }
+
+            return Settings.ApiKey ?? string.Empty;
+        }
+    }
+
+    public void SetApiKey(string apiKey)
+    {
+        lock (_lock)
+        {
+            var trimmed = apiKey?.Trim() ?? string.Empty;
+            Settings.EncryptedApiKey = string.IsNullOrEmpty(trimmed) ? string.Empty : _protector.Protect(trimmed);
+            Settings.ApiKey = null; // Never persist plaintext API keys
+        }
+    }
+
     public void Load()
     {
-        try
+        lock (_lock)
         {
-            if (File.Exists(SettingsFile))
+            try
             {
-                var json = File.ReadAllText(SettingsFile);
-                Settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                if (!File.Exists(AppPaths.SettingsFile))
+                    return;
+
+                var json = File.ReadAllText(AppPaths.SettingsFile);
+                var loaded = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                loaded.CourseHistory ??= [];
+                loaded.TokenUsageHistory ??= [];
+
+                Settings = loaded;
+
+                // One-time transparent migration from plaintext ApiKey -> DPAPI EncryptedApiKey
+                if (!string.IsNullOrWhiteSpace(Settings.ApiKey) && string.IsNullOrWhiteSpace(Settings.EncryptedApiKey))
+                {
+                    Settings.EncryptedApiKey = _protector.Protect(Settings.ApiKey.Trim());
+                    Settings.ApiKey = null;
+                    PersistUnsafe();
+                }
             }
-        }
-        catch
-        {
-            Settings = new AppSettings();
+            catch
+            {
+                AppPaths.BackupCorruptFile(AppPaths.SettingsFile);
+                Settings = new AppSettings();
+            }
         }
     }
 
     public void Save()
     {
-        try
+        lock (_lock)
         {
-            // Prune token history to keep at most 1,000 recent records
-            if (Settings.TokenUsageHistory.Count > 1000)
+            try
             {
-                Settings.TokenUsageHistory = Settings.TokenUsageHistory
-                    .OrderByDescending(r => r.Timestamp)
-                    .Take(1000)
-                    .OrderBy(r => r.Timestamp)
-                    .ToList();
+                PersistUnsafe();
             }
-
-            Directory.CreateDirectory(SettingsDir);
-            var json = JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsFile, json);
-        }
-        catch
-        {
-            // Silently fail — settings are not critical
+            catch
+            {
+                // Settings writes should not crash active workflows
+            }
         }
     }
 
-    /// <summary>
-    /// Resets in-memory settings to defaults and saves.
-    /// </summary>
     public void Reset()
     {
-        Settings = new AppSettings();
-        Save();
+        lock (_lock)
+        {
+            Settings = new AppSettings();
+            try
+            {
+                PersistUnsafe();
+            }
+            catch
+            {
+                // Non-fatal
+            }
+        }
+    }
+
+    private void PersistUnsafe()
+    {
+        Settings.CourseHistory ??= [];
+        Settings.TokenUsageHistory ??= [];
+
+        // Keep at most 1,000 most recent token telemetry records
+        if (Settings.TokenUsageHistory.Count > 1000)
+        {
+            Settings.TokenUsageHistory = Settings.TokenUsageHistory
+                .OrderByDescending(r => r.Timestamp)
+                .Take(1000)
+                .OrderBy(r => r.Timestamp)
+                .ToList();
+        }
+
+        // Ensure plaintext legacy property is never re-emitted once encrypted
+        if (!string.IsNullOrWhiteSpace(Settings.EncryptedApiKey))
+            Settings.ApiKey = null;
+
+        var json = JsonSerializer.Serialize(Settings, JsonOptions);
+        AppPaths.WriteAllTextAtomic(AppPaths.SettingsFile, json);
     }
 
     /// <summary>
-    /// Safely wipes internal application cache and configuration (AppData settings, LocalAppData models, Temp caches).
-    /// If selfUninstall is true:
-    ///   - If installed via setup installer, triggers the official Windows uninstaller (unins000.exe).
-    ///   - If running standalone, safely cleans internal application folders and removes the standalone executable.
+    /// Safely wipes internal application cache and configuration (AppData, LocalAppData, Temp caches).
     /// User documents and saved lecture notes are NEVER touched.
     /// </summary>
     public static void WipeAllData(bool selfUninstall = false)
     {
-        var appData = SettingsDir;
-        var localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LectureSmith");
-        var tempDir = Path.Combine(Path.GetTempPath(), "LectureSmith");
-        var desktopCrashLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LectureSmith_crash.log");
+        var appData = AppPaths.AppDataDir;
+        var localAppData = AppPaths.LocalAppDataDir;
+        var tempDir = AppPaths.TempDir;
+        var desktopCrashLog = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LectureSmith_crash.log");
 
         try { if (File.Exists(desktopCrashLog)) File.Delete(desktopCrashLog); } catch { }
 
@@ -82,42 +149,47 @@ public class SettingsService
             var appDir = Path.GetDirectoryName(exePath);
             var innoUninstaller = !string.IsNullOrEmpty(appDir) ? Path.Combine(appDir, "unins000.exe") : null;
 
-            // If installed via the official setup wizard, launch the standard Windows uninstaller
             if (!string.IsNullOrEmpty(innoUninstaller) && File.Exists(innoUninstaller))
             {
-                var psi = new System.Diagnostics.ProcessStartInfo
+                Process.Start(new ProcessStartInfo
                 {
                     FileName = innoUninstaller,
                     UseShellExecute = true
-                };
-                System.Diagnostics.Process.Start(psi);
+                });
                 Environment.Exit(0);
                 return;
             }
 
-            // Standalone / portable fallback: safe clean-up of internal LectureSmith folders & standalone exe
-            var safeAppData = (Directory.Exists(appData) && appData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
-                ? $"rd /s /q \"{appData}\" & " : "";
-            var safeLocalAppData = (Directory.Exists(localAppData) && localAppData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
-                ? $"rd /s /q \"{localAppData}\" & " : "";
-            var safeTempDir = (Directory.Exists(tempDir) && tempDir.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
-                ? $"rd /s /q \"{tempDir}\" & " : "";
+            // Standalone portable fallback: delete internal directories and standalone exe after exit
+            var cmds = new List<string> { "timeout /t 1 /nobreak > NUL" };
+            foreach (var dir in new[] { appData, localAppData, tempDir })
+            {
+                if (Directory.Exists(dir) && dir.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
+                    cmds.Add($"rd /s /q \"{dir}\"");
+            }
+            cmds.Add($"del /f /q \"{exePath}\"");
 
-            var psiStandalone = new System.Diagnostics.ProcessStartInfo
+            var psiStandalone = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/c timeout /t 1 /nobreak > NUL & {safeAppData}{safeLocalAppData}{safeTempDir}del /f /q \"{exePath}\"",
                 CreateNoWindow = true,
                 UseShellExecute = false
             };
-            System.Diagnostics.Process.Start(psiStandalone);
+            psiStandalone.ArgumentList.Add("/c");
+            psiStandalone.ArgumentList.Add(string.Join(" & ", cmds));
+            Process.Start(psiStandalone);
             Environment.Exit(0);
             return;
         }
 
-        // Wipe / Reset data mode: strictly delete only internal LectureSmith directories
-        try { if (Directory.Exists(appData) && appData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase)) Directory.Delete(appData, true); } catch { }
-        try { if (Directory.Exists(localAppData) && localAppData.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase)) Directory.Delete(localAppData, true); } catch { }
-        try { if (Directory.Exists(tempDir) && tempDir.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase)) Directory.Delete(tempDir, true); } catch { }
+        foreach (var dir in new[] { appData, localAppData, tempDir })
+        {
+            try
+            {
+                if (Directory.Exists(dir) && dir.EndsWith("LectureSmith", StringComparison.OrdinalIgnoreCase))
+                    Directory.Delete(dir, true);
+            }
+            catch { }
+        }
     }
 }

@@ -1,0 +1,256 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LectureSmith.ViewModels"
+             xmlns:views="using:LectureSmith.Views"
+             x:Class="LectureSmith.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+  <Grid Margin="20,16,20,18" ColumnDefinitions="340,16,*">
+
+    <!-- Left Column: Past Lectures List -->
+    <Border Grid.Column="0"
+            Background="{DynamicResource CardBackground}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="14">
+      <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Text="📜" FontSize="15" VerticalAlignment="Center"/>
+            <TextBlock Text="Past Lectures" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBg}" CornerRadius="10" Padding="8,3" VerticalAlignment="Center">
+            <TextBlock Text="{Binding FilteredSessions.Count, StringFormat='{}{0} Saved'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}"/>
+          </Border>
+        </Grid>
+
+        <TextBox Grid.Row="1"
+                 Text="{Binding SearchQuery}"
+                 Watermark="Search lectures or courses..."
+                 FontSize="12"/>
+
+        <Grid Grid.Row="2">
+          <StackPanel IsVisible="{Binding !HasSessions}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Spacing="8"
+                      Margin="10,40">
+            <TextBlock Text="📚" FontSize="38" HorizontalAlignment="Center" Opacity="0.45"/>
+            <TextBlock Text="No lecture history yet" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
+            <TextBlock Text="Generated notes appear here automatically." FontSize="11.5" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+          </StackPanel>
+
+          <ScrollViewer IsVisible="{Binding HasSessions}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding FilteredSessions}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HistorySessionItemViewModel">
+                  <Border Margin="0,0,0,8"
+                          CornerRadius="10"
+                          Background="{DynamicResource CardBackgroundSecondary}"
+                          BorderBrush="{DynamicResource CardBorderBrushSubtle}"
+                          BorderThickness="1"
+                          ClipToBounds="True">
+                    <Grid>
+                      <!-- Clickable Card Overlay -->
+                      <Button Command="{Binding $parent[ItemsControl].((vm:HistoryViewModel)DataContext).SelectSessionCommand}"
+                              CommandParameter="{Binding}"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              Padding="12"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch"
+                              VerticalContentAlignment="Stretch">
+                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                          <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <Border Grid.Column="0" Background="{DynamicResource AccentSubtleBg}" CornerRadius="5" Padding="6,2" HorizontalAlignment="Left">
+                              <TextBlock Text="{Binding DisplayCourse}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}" TextTrimming="CharacterEllipsis" MaxWidth="165"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="{Binding FormattedDate}" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                          </Grid>
+
+                          <TextBlock Grid.Row="1"
+                                     Text="{Binding DisplayTitle}"
+                                     FontSize="13"
+                                     FontWeight="Bold"
+                                     TextTrimming="CharacterEllipsis"/>
+
+                          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,2,28,0">
+                            <Border Background="{DynamicResource CardBackground}" CornerRadius="4" Padding="5,2" BorderBrush="{DynamicResource CardBorderBrushSubtle}" BorderThickness="1">
+                              <TextBlock Text="{Binding Format}" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"/>
+                            </Border>
+                            <TextBlock Text="{Binding ChatCountText}" FontSize="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                          </StackPanel>
+                        </Grid>
+                      </Button>
+
+                      <!-- Delete button pinned bottom-right -->
+                      <Button Classes="small"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                              Margin="6"
+                              Command="{Binding $parent[ItemsControl].((vm:HistoryViewModel)DataContext).DeleteSessionCommand}"
+                              CommandParameter="{Binding}"
+                              Foreground="{DynamicResource DangerBrush}"
+                              ToolTip.Tip="Remove from History (file on disk stays untouched)"
+                              Content="🗑️"/>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+
+      </Grid>
+    </Border>
+
+    <!-- Right Column: Detail Studio -->
+    <Border Grid.Column="2"
+            Background="{DynamicResource CardBackground}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            ClipToBounds="True">
+      <Grid>
+        <StackPanel IsVisible="{Binding !HasSelectedSession}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+          <TextBlock Text="🎓" FontSize="48" HorizontalAlignment="Center" Opacity="0.4"/>
+          <TextBlock Text="Select a Lecture to Review" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+          <TextBlock Text="Click any lecture on the left to read notes or continue follow-up Q&amp;A." FontSize="12" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <Grid IsVisible="{Binding HasSelectedSession}" RowDefinitions="Auto,Auto,*">
+          <!-- Session Banner -->
+          <Border Grid.Row="0"
+                  Background="{DynamicResource CardBackgroundSecondary}"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="18,12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+              <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center" ClipToBounds="True">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <Border Background="{DynamicResource AccentSubtleBg}" CornerRadius="6" Padding="6,2">
+                    <TextBlock Text="{Binding SelectedSession.DisplayCourse}" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource AccentSubtleText}"/>
+                  </Border>
+                  <TextBlock Text="{Binding SelectedSession.FormattedDate}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="{Binding SelectedSession.DisplayTitle}" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding SelectedSession.OutputFilePath}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" MaxWidth="520"/>
+                  <TextBlock Text="(File moved/deleted)" FontSize="10.5" Foreground="{DynamicResource DangerSubtleText}" IsVisible="{Binding !SelectedSession.FileExists}"/>
+                </StackPanel>
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button Classes="secondary"
+                        Command="{Binding OpenSessionFileCommand}"
+                        IsEnabled="{Binding SelectedSession.FileExists}"
+                        ToolTip.Tip="Open exported file">
+                  <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="📄"/>
+                    <TextBlock Text="Open File"/>
+                  </StackPanel>
+                </Button>
+                <Button Classes="secondary"
+                        Command="{Binding OpenSessionFolderCommand}"
+                        ToolTip.Tip="Show file in Explorer">
+                  <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="📁"/>
+                    <TextBlock Text="Folder"/>
+                  </StackPanel>
+                </Button>
+                <Button Classes="secondary"
+                        Command="{Binding ResumeInWorkspaceCommand}"
+                        ToolTip.Tip="Open in Workspace Studio">
+                  <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="💬"/>
+                    <TextBlock Text="Workspace"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Sub-Tabs -->
+          <Border Grid.Row="1"
+                  Background="{DynamicResource CardBackground}"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="14,7">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                <Button Classes="tabBtn" Classes.active="{Binding IsNotesTabActive}"
+                        Command="{Binding SwitchTabCommand}" CommandParameter="Notes">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="📝"/>
+                    <TextBlock Text="Lecture Notes"/>
+                  </StackPanel>
+                </Button>
+                <Button Classes="tabBtn" Classes.active="{Binding IsChatTabActive}"
+                        Command="{Binding SwitchTabCommand}" CommandParameter="Chat">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="💬"/>
+                    <TextBlock Text="Follow-up Chat"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsNotesTabActive}">
+                <Border Background="{DynamicResource CardBackgroundSecondary}"
+                        BorderBrush="{DynamicResource CardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="2">
+                  <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Classes="tabBtn" Classes.active="{Binding IsRenderedPreview}"
+                            Command="{Binding SetPreviewModeCommand}" CommandParameter="Rendered"
+                            Padding="9,4" FontSize="11" Content="Rendered"/>
+                    <Button Classes="tabBtn" Classes.active="{Binding !IsRenderedPreview}"
+                            Command="{Binding SetPreviewModeCommand}" CommandParameter="Raw"
+                            Padding="9,4" FontSize="11" Content="Raw .md"/>
+                  </StackPanel>
+                </Border>
+
+                <Button Classes="secondary"
+                        Padding="10,5"
+                        FontSize="11.5"
+                        Command="{Binding CopyNotesCommand}"
+                        Content="📋 Copy Notes"/>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Notes Content -->
+          <Border Grid.Row="2" IsVisible="{Binding IsNotesTabActive}" Background="{DynamicResource PreviewBackground}">
+            <Grid>
+              <views:MarkdownViewer DataContext="{Binding MarkdownViewer}"
+                                    IsVisible="{Binding $parent[UserControl].((vm:HistoryViewModel)DataContext).IsRenderedPreview}"/>
+
+              <ScrollViewer IsVisible="{Binding !$parent[UserControl].((vm:HistoryViewModel)DataContext).IsRenderedPreview}"
+                            Padding="18"
+                            HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock Text="{Binding SelectedSession.MarkdownContent}"
+                                     FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                     FontSize="12.5"
+                                     LineHeight="21"
+                                     Foreground="{DynamicResource PreviewText}"
+                                     TextWrapping="Wrap"/>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+
+          <!-- Shared Chat Panel -->
+          <views:ChatPanelView Grid.Row="2"
+                               DataContext="{Binding Chat}"
+                               IsVisible="{Binding $parent[UserControl].((vm:HistoryViewModel)DataContext).IsChatTabActive}"/>
+        </Grid>
+      </Grid>
+    </Border>
+
+  </Grid>
+</UserControl>

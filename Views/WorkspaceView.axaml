@@ -1,0 +1,472 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LectureSmith.ViewModels"
+             xmlns:m="using:LectureSmith.Models"
+             xmlns:c="using:LectureSmith.Converters"
+             xmlns:views="using:LectureSmith.Views"
+             x:Class="LectureSmith.Views.WorkspaceView"
+             x:DataType="vm:WorkspaceViewModel">
+
+  <Grid ColumnDefinitions="468,*" ColumnSpacing="16" Margin="20,14,20,16">
+
+    <!-- ═══════ LEFT COLUMN: SCROLLABLE INPUTS + DOCKED GENERATE CTA ═══════ -->
+    <Grid Grid.Column="0" RowDefinitions="*,Auto">
+      <ScrollViewer Grid.Row="0"
+                    Name="LeftPanelScroller"
+                    Padding="0,0,6,0"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="0">
+
+          <!-- Card 1: Lecture Materials -->
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="sectionHeader" Text="📎 Lecture Materials"/>
+
+              <TextBlock Text="Lecture Slides PDF (required):" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+              <Border Classes="dropzone"
+                      Name="SlidesDropZone"
+                      DragDrop.AllowDrop="True"
+                      IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNull}}"
+                      Tapped="SlidesDropZone_Tapped">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Text="📄 Drag &amp; drop slides PDF here" HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimary}" FontSize="12" FontWeight="SemiBold"/>
+                  <TextBlock Text="or click to browse from disk" HorizontalAlignment="Center" FontSize="10.5" Foreground="{DynamicResource TextMuted}"/>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="fileChip" IsVisible="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <TextBlock Text="📑" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="{Binding SlidesFile.FileName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" Margin="8,0" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                  <Button Grid.Column="2" Classes="small" Command="{Binding RemoveSlidesCommand}" Content="✕"/>
+                </Grid>
+              </Border>
+
+              <TextBlock Text="Reference Books (optional):" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
+              <Border Classes="dropzone"
+                      Name="BooksDropZone"
+                      DragDrop.AllowDrop="True"
+                      Tapped="BooksDropZone_Tapped">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Text="📚 Drag &amp; drop reference book PDFs" HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimary}" FontSize="12" FontWeight="SemiBold"/>
+                  <TextBlock Text="or click to attach multiple books" HorizontalAlignment="Center" FontSize="10.5" Foreground="{DynamicResource TextMuted}"/>
+                </StackPanel>
+              </Border>
+
+              <ItemsControl ItemsSource="{Binding BookFiles}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="m:UploadedFile">
+                    <Border Classes="fileChip">
+                      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6">
+                        <TextBlock Text="📕" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                        <TextBox Grid.Column="2" Width="130" Text="{Binding ChapterInfo}" Watermark="p305-340" FontSize="10.5"/>
+                        <Button Grid.Column="3" Classes="small"
+                                Command="{Binding $parent[ItemsControl].((vm:WorkspaceViewModel)DataContext).RemoveBookCommand}"
+                                CommandParameter="{Binding}"
+                                Content="✕"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <!-- Card 2: Note Generation Engine -->
+          <Border Classes="card">
+            <StackPanel Spacing="9">
+              <TextBlock Classes="sectionHeader" Text="⚙ Note Generation Engine"/>
+
+              <!-- Course Name -->
+              <StackPanel Spacing="3">
+                <TextBlock Text="Course Name:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                <ComboBox ItemsSource="{Binding Courses}"
+                          IsEditable="True"
+                          Text="{Binding SelectedCourse, Mode=TwoWay}"
+                          PlaceholderText="e.g., Web Development or Organic Chemistry">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="{Binding}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="✕" FontSize="10" Padding="4,2"
+                                Background="Transparent" Foreground="{DynamicResource TextMuted}"
+                                BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"
+                                Command="{Binding $parent[ComboBox].((vm:WorkspaceViewModel)DataContext).RemoveCourseCommand}"
+                                CommandParameter="{Binding}"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <!-- Mode & Language (wide enough to never truncate) -->
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <StackPanel Grid.Column="0" Spacing="3">
+                  <TextBlock Text="Lecture Mode:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                  <ComboBox ItemsSource="{Binding LectureModes}" SelectedItem="{Binding SelectedMode}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:LectureMode">
+                        <TextBlock Text="{Binding Converter={x:Static c:AppConverters.LectureModeDisplay}}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock Text="Output Language:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                  <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:NoteLanguage">
+                        <TextBlock Text="{Binding Converter={x:Static c:AppConverters.LanguageDisplay}}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+              </Grid>
+
+              <!-- AI Model Selector -->
+              <StackPanel Spacing="3">
+                <TextBlock Text="AI Text Generation Model:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                <ComboBox ItemsSource="{Binding AvailableModels}" SelectedItem="{Binding SelectedModel}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="m:GeminiModelInfo">
+                      <TextBlock Text="{Binding Converter={x:Static c:AppConverters.ModelDisplay}}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{Binding ActiveModelSubtext}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+              </StackPanel>
+
+              <!-- Slide Processing & Output Format -->
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <StackPanel Grid.Column="0" Spacing="3">
+                  <TextBlock Text="Slide Processing:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                  <ComboBox ItemsSource="{Binding SlideProcessingModes}" SelectedItem="{Binding SelectedSlideProcessing}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:SlideProcessingMode">
+                        <TextBlock Text="{Binding Converter={x:Static c:AppConverters.SlideProcessingDisplay}}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock Text="Output Format:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                  <ComboBox ItemsSource="{Binding OutputFormats}" SelectedItem="{Binding SelectedFormat}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:OutputFormat">
+                        <TextBlock Text="{Binding Converter={x:Static c:AppConverters.OutputFormatDisplay}}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+              </Grid>
+              <TextBlock Text="{Binding SelectedSlideProcessingDescription}" FontSize="10" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+
+              <!-- AI Reasoning Checkbox -->
+              <CheckBox IsChecked="{Binding EnableThinking}" Margin="0,2,0,0">
+                <StackPanel>
+                  <TextBlock Text="Enable AI Reasoning / Thinking" FontSize="12" FontWeight="SemiBold"/>
+                  <TextBlock Text="Uses dynamic thinking budget on Gemini 2.5 / 3 / 4 models." FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                </StackPanel>
+              </CheckBox>
+
+              <!-- Skip Slides -->
+              <StackPanel Spacing="5">
+                <Button Classes="secondary"
+                        Command="{Binding OpenSkipSlidesPopupCommand}"
+                        IsEnabled="{Binding SlidesFile, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        HorizontalAlignment="Stretch"
+                        Padding="12,8">
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                    <TextBlock Text="📋" VerticalAlignment="Center"/>
+                    <TextBlock Text="Select Slides to Skip (Optional)" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <Border Background="{DynamicResource AccentSubtleBg}"
+                        BorderBrush="{DynamicResource AccentSubtleBorder}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,5"
+                        IsVisible="{Binding SkipSlides.SkippedSlidesDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <TextBlock Text="{Binding SkipSlides.SkippedSlidesDisplayText}"
+                             FontSize="11"
+                             Foreground="{DynamicResource AccentSubtleText}"
+                             FontWeight="SemiBold"
+                             TextWrapping="Wrap"
+                             HorizontalAlignment="Center"/>
+                </Border>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Card 3: Export & Instructions -->
+          <Border Classes="card" Margin="0,0,0,6">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="sectionHeader" Text="💾 Export &amp; Custom Instructions"/>
+              <StackPanel Spacing="3">
+                <TextBlock Text="Save Folder:" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBox Text="{Binding OutputPath}" Watermark="Select output folder..."/>
+                  <Button Grid.Column="1" Content="Browse" Classes="secondary" Padding="14,7" Click="BrowseOutput_Click"/>
+                </Grid>
+              </StackPanel>
+              <StackPanel Spacing="3">
+                <TextBlock Text="Extra Instructions (optional):" FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
+                <TextBox Text="{Binding ExtraNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="42" MaxHeight="76" Watermark="e.g., 'Focus on derivations' or 'Include exam pitfalls'"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- DOCKED ACTION FOOTER (ALWAYS VISIBLE) -->
+      <Border Grid.Row="1"
+              Padding="0,8,6,0"
+              Background="{DynamicResource AppBackground}">
+        <StackPanel Spacing="6">
+          <Button Classes="primary"
+                  Command="{Binding GenerateCommand}"
+                  IsEnabled="{Binding CanGenerate}"
+                  Height="44">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="⚡" FontSize="16" VerticalAlignment="Center"/>
+              <TextBlock Text="Generate Lecture Notes" FontSize="14.5" FontWeight="Bold" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+
+          <TextBlock Text="{Binding GenerateBlockedReason}"
+                     IsVisible="{Binding !CanGenerate}"
+                     FontSize="11"
+                     Foreground="{DynamicResource TextMuted}"
+                     HorizontalAlignment="Center"
+                     TextTrimming="CharacterEllipsis"/>
+
+          <Button Classes="danger"
+                  IsVisible="{Binding IsGenerating}"
+                  Command="{Binding CancelGenerationCommand}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  Content="Cancel Generation"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ═══════ RIGHT COLUMN: LIVE PREVIEW & INTERACTIVE CHAT STUDIO ═══════ -->
+    <Border Grid.Column="1"
+            Background="{DynamicResource CardBackground}"
+            CornerRadius="14"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="1"
+            ClipToBounds="True">
+      <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Studio Sub-Header (Pinned Action Buttons + Optional Token Strip) -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource CardBackgroundSecondary}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="14,10">
+          <StackPanel Spacing="7">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                  <TextBlock Text="📖" FontSize="15" VerticalAlignment="Center"/>
+                  <TextBlock Text="Live Note Preview" FontSize="13.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Rendered / Raw Toggle -->
+                <Border Background="{DynamicResource CardBackground}"
+                        BorderBrush="{DynamicResource CardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="2">
+                  <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Classes="tabBtn" Classes.active="{Binding IsRenderedPreview}"
+                            Command="{Binding SetPreviewModeCommand}" CommandParameter="Rendered"
+                            Padding="9,4" FontSize="11" Content="Rendered"/>
+                    <Button Classes="tabBtn" Classes.active="{Binding !IsRenderedPreview}"
+                            Command="{Binding SetPreviewModeCommand}" CommandParameter="Raw"
+                            Padding="9,4" FontSize="11" Content="Raw .md"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button Classes="secondary"
+                        Padding="9,5"
+                        FontSize="11.5"
+                        IsVisible="{Binding HasLivePreview}"
+                        Command="{Binding CopyLiveNotesCommand}"
+                        ToolTip.Tip="Copy generated markdown">
+                  <TextBlock Text="📋 Copy"/>
+                </Button>
+                <Button Classes="secondary"
+                        Padding="9,5"
+                        FontSize="11.5"
+                        IsVisible="{Binding HasLastOutputFile}"
+                        Command="{Binding OpenLastOutputFileCommand}"
+                        ToolTip.Tip="Open exported file">
+                  <TextBlock Text="📄 Open"/>
+                </Button>
+                <Button Classes="secondary"
+                        Padding="9,5"
+                        FontSize="11.5"
+                        IsVisible="{Binding HasLastOutputFile}"
+                        Command="{Binding OpenLastOutputFolderCommand}"
+                        ToolTip.Tip="Show in Explorer">
+                  <TextBlock Text="📁"/>
+                </Button>
+
+                <Button Classes="secondary"
+                        Command="{Binding StartFollowUpSessionCommand}"
+                        IsVisible="{Binding !IsFollowUpSessionActive}"
+                        IsEnabled="{Binding HasLivePreview}"
+                        Padding="11,5"
+                        ToolTip.Tip="Ask follow-up questions about these notes">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="💬"/>
+                    <TextBlock Text="Follow-up Chat" FontWeight="SemiBold"/>
+                  </StackPanel>
+                </Button>
+
+                <Button Classes="small"
+                        Command="{Binding EndFollowUpSessionCommand}"
+                        IsVisible="{Binding IsFollowUpSessionActive}"
+                        Foreground="{DynamicResource DangerBrush}"
+                        Padding="8,5">
+                  <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="✕"/>
+                    <TextBlock Text="End Chat" FontWeight="SemiBold"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </Grid>
+
+            <!-- Dedicated Token Estimate Strip (never pushes Follow-up Chat off-screen) -->
+            <Border Background="{DynamicResource AccentSubtleBg}"
+                    BorderBrush="{DynamicResource AccentSubtleBorder}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10,4"
+                    HorizontalAlignment="Left"
+                    IsVisible="{Binding EstimatedTokenInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+              <TextBlock Text="{Binding EstimatedTokenInfo, StringFormat='📊 {0}'}"
+                         FontSize="11"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource AccentSubtleText}"/>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- Studio Body -->
+        <Grid Grid.Row="1">
+          <!-- Mode A: Full Preview -->
+          <Border IsVisible="{Binding !IsFollowUpSessionActive}"
+                  Background="{DynamicResource PreviewBackground}">
+            <Grid>
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding !HasLivePreview}">
+                <TextBlock Text="📝" FontSize="44" HorizontalAlignment="Center" Opacity="0.45"/>
+                <TextBlock Text="No lecture notes generated yet" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Upload slides on the left and click 'Generate Lecture Notes'." FontSize="12" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- Rendered Virtualized Markdown + Images View -->
+              <Grid IsVisible="{Binding HasLivePreview}">
+                <views:MarkdownViewer DataContext="{Binding MarkdownViewer}"
+                                      IsVisible="{Binding $parent[UserControl].((vm:WorkspaceViewModel)DataContext).IsRenderedPreview}"/>
+
+                <!-- Raw Markdown View -->
+                <ScrollViewer IsVisible="{Binding !$parent[UserControl].((vm:WorkspaceViewModel)DataContext).IsRenderedPreview}"
+                              Padding="18"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                  <SelectableTextBlock Text="{Binding LivePreview}"
+                                       FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                       FontSize="12.5"
+                                       LineHeight="21"
+                                       Foreground="{DynamicResource PreviewText}"
+                                       TextWrapping="Wrap"/>
+                </ScrollViewer>
+              </Grid>
+            </Grid>
+          </Border>
+
+          <!-- Mode B: Split View with Shared ChatPanelView -->
+          <Grid IsVisible="{Binding IsFollowUpSessionActive}">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="1*" MinHeight="90"/>
+              <RowDefinition Height="6"/>
+              <RowDefinition Height="2*" MinHeight="220"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="{DynamicResource PreviewBackground}">
+              <Grid RowDefinitions="Auto,*">
+                <Border Grid.Row="0" Background="{DynamicResource CardBackgroundSecondary}" CornerRadius="6" Padding="10,4" Margin="12,8,12,0">
+                  <TextBlock Text="📄 Generated Lecture Notes (Context Reference)" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentSubtleText}"/>
+                </Border>
+                <Grid Grid.Row="1">
+                  <views:MarkdownViewer DataContext="{Binding MarkdownViewer}"
+                                        IsVisible="{Binding $parent[UserControl].((vm:WorkspaceViewModel)DataContext).IsRenderedPreview}"/>
+                  <ScrollViewer IsVisible="{Binding !$parent[UserControl].((vm:WorkspaceViewModel)DataContext).IsRenderedPreview}"
+                                Padding="14"
+                                HorizontalScrollBarVisibility="Disabled"
+                                VerticalScrollBarVisibility="Auto">
+                    <SelectableTextBlock Text="{Binding LivePreview}"
+                                         FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                         FontSize="12"
+                                         LineHeight="19"
+                                         Foreground="{DynamicResource PreviewText}"
+                                         TextWrapping="Wrap"/>
+                  </ScrollViewer>
+                </Grid>
+              </Grid>
+            </Border>
+
+            <GridSplitter Grid.Row="1" Background="{DynamicResource CardBorderBrush}" ResizeDirection="Rows" ShowsPreview="True" Cursor="SizeNorthSouth"/>
+
+            <views:ChatPanelView Grid.Row="2" DataContext="{Binding Chat}"/>
+          </Grid>
+        </Grid>
+
+        <!-- Studio Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundSecondary}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="14,9">
+          <StackPanel Spacing="4">
+            <ProgressBar IsVisible="{Binding IsGenerating}"
+                         Value="{Binding ProgressPercent}"
+                         Maximum="100"
+                         Height="5"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Background="{DynamicResource CardBorderBrush}"
+                         CornerRadius="3"/>
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding ProgressMessage}" FontSize="11.5" Foreground="{DynamicResource TextSecondary}"/>
+              <TextBlock Grid.Column="1" Text="{Binding LivePreview.Length, StringFormat='{}{0:N0} characters'}" FontSize="10.5" Foreground="{DynamicResource TextMuted}"/>
+            </Grid>
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="11.5"
+                       TextWrapping="Wrap"
+                       Classes.error="{Binding IsStatusError}"
+                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+              <TextBlock.Styles>
+                <Style Selector="TextBlock">
+                  <Setter Property="Foreground" Value="{DynamicResource SuccessSubtleText}"/>
+                </Style>
+                <Style Selector="TextBlock.error">
+                  <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                </Style>
+              </TextBlock.Styles>
+            </TextBlock>
+          </StackPanel>
+        </Border>
+
+      </Grid>
+    </Border>
+
+  </Grid>
+</UserControl>
